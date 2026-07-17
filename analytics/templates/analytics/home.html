@@ -1,21 +1,122 @@
+{% load static %}
 <!DOCTYPE html>
-
 <html lang="pt-br">
 
 <head>
-
     <meta charset="UTF-8">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Infosiga Analytics</title>
 
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- CSS Customizado -->
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
 </head>
 
 <body>
+    <!-- Cabeçalho Fixo -->
+    <nav class="navbar navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-graph-up"></i> Infosiga Analytics
+            </span>
+        </div>
+    </nav>
 
-    <h1>Projeto Infosiga</h1>
+    <!-- Conteúdo Principal -->
+    <main class="py-5 mt-5">
+        <div class="container">
+            <!-- Card de Upload -->
+            <div class="row justify-content-center mb-5">
+                <div class="col-lg-6 col-md-8">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body p-4">
+                            <h2 class="card-title mb-4 text-primary">
+                                <i class="bi bi-file-earmark-excel"></i> Importar planilha
+                            </h2>
+                            
+                            <form id="uploadForm" enctype="multipart/form-data" method="POST">
+                                {% csrf_token %}
+                                
+                                <!-- Input de Arquivo -->
+                                <div class="mb-3">
+                                    <label for="fileInput" class="form-label">
+                                        Selecione um arquivo Excel (.xlsx, .xls)
+                                    </label>
+                                    <input 
+                                        type="file" 
+                                        class="form-control" 
+                                        id="fileInput" 
+                                        name="arquivo"
+                                        accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                        required
+                                    >
+                                    <small class="text-muted d-block mt-2">
+                                        Formatos aceitos: .xlsx, .xls
+                                    </small>
+                                </div>
 
-    <p>Primeira página funcionando.</p>
+                                <!-- Botão -->
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-upload"></i> Carregar arquivo
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+            <!-- Seção de Filtros -->
+            <div class="row justify-content-center">
+                <div class="col-lg-6 col-md-8">
+                    <section class="bg-light p-4 rounded-3 border">
+                        <h3 class="mb-4 text-secondary">
+                            <i class="bi bi-funnel"></i> Filtros
+                        </h3>
+
+                        <form id="filterForm">
+                            <!-- Tipo de Via -->
+                            <div class="mb-3">
+                                <label for="tipoVia" class="form-label fw-semibold">Tipo de via</label>
+                                <select class="form-select" id="tipoVia" name="tipo_via">
+                                    <option value="">Selecione...</option>
+                                    <option value="urbana">Urbana</option>
+                                    <option value="rodovia">Estradas e rodovias</option>
+                                </select>
+                            </div>
+
+                            <!-- Tipo de Sinistro -->
+                            <div class="mb-4">
+                                <label for="tipoSinistro" class="form-label fw-semibold">Tipo de sinistro</label>
+                                <select class="form-select" id="tipoSinistro" name="tipo_sinistro">
+                                    <option value="">Selecione...</option>
+                                    <option value="fatal">Fatal</option>
+                                    <option value="nao_fatal">Não fatal</option>
+                                </select>
+                            </div>
+
+                            <!-- Botões de Ação -->
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="reset" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-clockwise"></i> Limpar
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i> Filtrar
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Script Customizado -->
+    <script src="{% static 'js/home.js' %}" defer></script>
 </body>
 
 </html>
