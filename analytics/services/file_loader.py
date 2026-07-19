@@ -1,9 +1,11 @@
 import os
 
+import pandas as pd
 from django.contrib import messages
 from django.shortcuts import redirect
 
 from analytics.forms import UploadFileForm
+from analytics.services.filters import apply_filters
 
 
 ALLOWED_EXTENSIONS = {".csv", ".xlsx"}
@@ -23,6 +25,45 @@ def get_file_info(arquivo):
         "extensao": extensao,
         "tamanho_kb": tamanho_kb,
     }
+
+
+def load_dataframe(arquivo):
+    """Lê o arquivo enviado com pandas e retorna um DataFrame."""
+ 
+    extensao = arquivo.name.rsplit(".", 1)[-1].lower()
+
+    if extensao == "xlsx":
+        return pd.read_excel(arquivo)
+
+    caminho_arquivo = arquivo.temporary_file_path()
+
+    codificacoes = [
+        "utf-8",
+        "utf-8-sig",
+        "cp1252",
+        "latin1",
+    ]
+
+    for encoding in codificacoes:
+
+        try:
+
+            print(f"Tentando {encoding}")
+
+            return pd.read_csv(
+                caminho_arquivo,
+                sep=";",
+                encoding=encoding,
+                engine="python"
+            )
+
+        except Exception as e:
+
+            print(f"Falhou com {encoding}: {e}")
+
+    raise ValueError(
+        "Não foi possível abrir o arquivo CSV."
+    )
 
 
 def process_upload(request):
@@ -46,8 +87,31 @@ def process_upload(request):
         messages.error(request, "Extensão de arquivo inválida. Apenas .csv e .xlsx são permitidos.")
         return form, redirect("home")
 
+    try:
+        dataframe = load_dataframe(arquivo)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return form, redirect("home")
+
+    tipo_via = request.POST.get("tipo_via")
+    tipo_sinistro = request.POST.get("tipo_sinistro")
+    print(f"[DEBUG] tipo_via recebido: {tipo_via}")
+    print(f"[DEBUG] tipo_sinistro recebido: {tipo_sinistro}")
+    print(f"[DEBUG] linhas antes dos filtros: {len(dataframe)}")
+    dataframe_filtrado = apply_filters(dataframe, tipo_via=tipo_via, tipo_sinistro=tipo_sinistro)
+    print(f"[DEBUG] linhas depois dos filtros: {len(dataframe_filtrado)}")
+
+    columns_to_show = [col for col in ["tipo_registro", "logradouro", "municipio"] if col in dataframe_filtrado.columns]
+    request.session["preview_data"] = {
+        "columns": columns_to_show,
+        "rows": dataframe_filtrado[columns_to_show].head(5).values.tolist(),
+    }
+
     messages.success(
         request,
         f"Arquivo recebido: {file_info['nome']} | Extensão: {extensao} | Tamanho: {file_info['tamanho_kb']} KB",
     )
+    messages.info(request, f"Linhas restantes: {len(dataframe_filtrado)}")
+    messages.info(request, f"Colunas: {len(dataframe_filtrado.columns)}")
+    messages.info(request, f"Registros encontrados: {len(dataframe_filtrado)}")
     return form, redirect("home")

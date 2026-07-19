@@ -11,7 +11,7 @@ class UploadFileForm(forms.Form):
         widget=forms.ClearableFileInput(
             attrs={
                 "class": "form-control",
-                "accept": ".csv,.xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv",
+                "accept": ".csv,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv",
             }
         ),
     )
@@ -23,7 +23,7 @@ class UploadFileForm(forms.Form):
             return arquivo
 
         ext = os.path.splitext(arquivo.name)[1].lower()
-        if ext not in {".csv", ".xls", ".xlsx"}:
-            raise ValidationError("Somente arquivos CSV ou Excel (.xls, .xlsx) são permitidos.")
+        if ext not in {".csv", ".xlsx"}:
+            raise ValidationError("Somente arquivos CSV ou Excel (.csv, .xlsx) são permitidos.")
 
         return arquivo
