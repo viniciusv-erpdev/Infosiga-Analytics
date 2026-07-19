@@ -49,14 +49,29 @@ section.filter-card,
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
-section.filter-card {
-    padding: 1.5rem;
-}
-
-section.filter-card h3,
 .card.preview-card .card-title {
     color: #1d4ed8 !important;
     font-weight: 700;
+}
+
+.file-info-card {
+    border-radius: 1rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    background-color: #ffffff;
+}
+
+.file-info-card .card-title {
+    color: #1d4ed8;
+    font-weight: 700;
+}
+
+.file-info-card .text-muted {
+    letter-spacing: 0.08em;
+}
+
+.border-top {
+    border-color: #e5e7eb !important;
 }
 
 .card.preview-card .table thead th {

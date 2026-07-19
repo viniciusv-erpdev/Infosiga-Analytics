@@ -106,6 +106,12 @@ def process_upload(request):
         "columns": columns_to_show,
         "rows": dataframe_filtrado[columns_to_show].head(5).values.tolist(),
     }
+    request.session["uploaded_file_info"] = {
+        "nome": file_info["nome"],
+        "tamanho_kb": file_info["tamanho_kb"],
+        "extensao": extensao,
+    }
+    request.session.modified = True
 
     messages.success(
         request,

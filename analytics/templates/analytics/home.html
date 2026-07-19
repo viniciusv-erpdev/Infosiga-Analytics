@@ -33,14 +33,6 @@
                                     <i class="bi bi-file-earmark-excel"></i> Importar planilha
                                 </h2>
 
-                                {% if messages %}
-                                    {% for message in messages %}
-                                        <div class="alert alert-{{ message.tags|default:'success' }}" role="alert">
-                                            {{ message }}
-                                        </div>
-                                    {% endfor %}
-                                {% endif %}
-
                                 <div class="mb-3">
                                     <label for="fileInput" class="form-label">
                                         Selecione um arquivo CSV ou Excel (.csv, .xlsx)
@@ -59,41 +51,66 @@
                                         <i class="bi bi-arrow-clockwise"></i> Limpar arquivo
                                     </a>
                                 </div>
+
+                                <div class="mt-4 pt-2 border-top">
+                                    <h6 class="mb-3 text-primary fw-bold">
+                                        <i class="bi bi-funnel"></i> Filtros
+                                    </h6>
+
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="tipoVia" class="form-label fw-semibold">Tipo de via</label>
+                                            <select class="form-select" id="tipoVia" name="tipo_via">
+                                                <option value="">Selecione...</option>
+                                                <option value="urbana">Urbana</option>
+                                                <option value="estradas e rodovias">Estradas e rodovias</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="tipoSinistro" class="form-label fw-semibold">Tipo de sinistro</label>
+                                            <select class="form-select" id="tipoSinistro" name="tipo_sinistro">
+                                                <option value="">Selecione...</option>
+                                                <option value="fatal">Fatal</option>
+                                                <option value="nao_fatal">Não fatal</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </form>
 
-                <div class="row justify-content-center mb-4">
-                    <div class="col-lg-6 col-md-8">
-                        <section class="filter-card p-4 rounded-3">
-                            <h3 class="mb-3 text-primary">
-                                <i class="bi bi-funnel"></i> Filtros
-                            </h3>
+            {% if uploaded_file_info %}
+            <div class="row justify-content-center mb-4">
+                <div class="col-lg-6 col-md-8">
+                    <div class="card file-info-card shadow-sm border-0">
+                        <div class="card-body p-4">
+                            <h5 class="card-title mb-3 text-primary">
+                                <i class="bi bi-file-earmark-text"></i> Informações do arquivo
+                            </h5>
 
                             <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="tipoVia" class="form-label fw-semibold">Tipo de via</label>
-                                    <select class="form-select" id="tipoVia" name="tipo_via">
-                                        <option value="">Selecione...</option>
-                                        <option value="urbana">Urbana</option>
-                                        <option value="estradas e rodovias">Estradas e rodovias</option>
-                                    </select>
+                                <div class="col-md-4">
+                                    <div class="text-muted small text-uppercase fw-semibold">Nome</div>
+                                    <div class="fw-semibold">{{ uploaded_file_info.nome }}</div>
                                 </div>
-
-                                <div class="col-md-6">
-                                    <label for="tipoSinistro" class="form-label fw-semibold">Tipo de sinistro</label>
-                                    <select class="form-select" id="tipoSinistro" name="tipo_sinistro">
-                                        <option value="">Selecione...</option>
-                                        <option value="fatal">Fatal</option>
-                                        <option value="nao_fatal">Não fatal</option>
-                                    </select>
+                                <div class="col-md-4">
+                                    <div class="text-muted small text-uppercase fw-semibold">Extensão</div>
+                                    <div class="fw-semibold">.{{ uploaded_file_info.extensao|upper }}</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-muted small text-uppercase fw-semibold">Tamanho</div>
+                                    <div class="fw-semibold">{{ uploaded_file_info.tamanho_kb|floatformat:2 }} KB</div>
                                 </div>
                             </div>
-                        </section>
+                        </div>
                     </div>
                 </div>
-            </form>
+            </div>
+            {% endif %}
 
             {% if preview_data %}
             <div class="row justify-content-center">
