@@ -1,8 +1,9 @@
+from analytics.services.preprocessing.address_matcher import regularize_addresses
 from analytics.services.preprocessing.address_normalizer import normalize_address
 
 
 def run_preprocessing(df):
-    """Cria a coluna logradouro_normalizado sem alterar o logradouro original."""
+    """Executa a normalização e a regularização de logradouros sem alterar o logradouro original."""
     if df is None:
         return df
 
@@ -13,4 +14,4 @@ def run_preprocessing(df):
     else:
         df_processado["logradouro_normalizado"] = ""
 
-    return df_processado
+    return regularize_addresses(df_processado)

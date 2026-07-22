@@ -63,12 +63,20 @@ def load_dataframe(arquivo):
 def build_preview_data(dataframe):
     """Cria a estrutura de pré-visualização a partir do DataFrame processado."""
     if dataframe is None:
-        return {"columns": [], "rows": []}
+        return {"columns": [], "rows": [], "regularization_columns": [], "regularization_rows": []}
 
     columns_to_show = [col for col in ["logradouro", "logradouro_normalizado"] if col in dataframe.columns]
+    regularization_columns = [
+        col
+        for col in ["logradouro", "logradouro_normalizado", "logradouro_canonico", "similaridade", "frequencia_grupo"]
+        if col in dataframe.columns
+    ]
+
     return {
         "columns": columns_to_show,
         "rows": dataframe[columns_to_show].head(20).values.tolist(),
+        "regularization_columns": regularization_columns,
+        "regularization_rows": dataframe[regularization_columns].head(20).values.tolist(),
     }
 
 

@@ -7,7 +7,10 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, SimpleTestCase
 
-from analytics.services.file_loader import process_upload
+from analytics.services.file_loader import build_preview_data, process_upload
+from analytics.services.preprocessing.address_cluster import cluster_addresses
+from analytics.services.preprocessing.address_dictionary import build_address_dictionary
+from analytics.services.preprocessing.address_matcher import regularize_addresses
 
 
 class ProcessUploadTests(SimpleTestCase):
@@ -48,3 +51,50 @@ class ProcessUploadTests(SimpleTestCase):
         self.assertEqual(request.session["preview_data"]["columns"], ["logradouro", "logradouro_normalizado"])
         self.assertEqual(request.session["preview_data"]["rows"][0][0], "Av. Independencia")
         self.assertEqual(response.status_code, 302)
+
+    def test_cluster_addresses_groups_similar_addresses(self):
+        clusters = cluster_addresses(["avenida independencia", "av independencia", "rua teste", "avenida independencia"])
+
+        self.assertIn("avenida independencia", clusters)
+        self.assertEqual(clusters["avenida independencia"]["frequencia"], 3)
+        self.assertIn("av independencia", clusters["avenida independencia"]["variacoes"])
+
+    def test_build_address_dictionary_maps_variations_to_canonical(self):
+        clusters = cluster_addresses(["avenida independencia", "av independencia"])
+        dictionary = build_address_dictionary(clusters)
+
+        self.assertEqual(dictionary["av independencia"], "avenida independencia")
+        self.assertEqual(dictionary["avenida independencia"], "avenida independencia")
+
+    def test_regularize_addresses_adds_canonical_columns(self):
+        dataframe = pd.DataFrame(
+            {
+                "logradouro_normalizado": ["avenida independencia", "av independencia", "rua teste"],
+            }
+        )
+
+        regularized = regularize_addresses(dataframe)
+
+        self.assertIn("logradouro_canonico", regularized.columns)
+        self.assertIn("similaridade", regularized.columns)
+        self.assertIn("frequencia_grupo", regularized.columns)
+        self.assertEqual(regularized.loc[0, "logradouro_canonico"], "avenida independencia")
+        self.assertEqual(regularized.loc[1, "frequencia_grupo"], 2)
+
+    def test_build_preview_data_includes_regularization_columns(self):
+        dataframe = pd.DataFrame(
+            {
+                "logradouro": ["Av. Independencia"],
+                "logradouro_normalizado": ["avenida independencia"],
+                "logradouro_canonico": ["avenida independencia"],
+                "similaridade": [100],
+                "frequencia_grupo": [2],
+            }
+        )
+
+        preview_data = build_preview_data(dataframe)
+
+        self.assertEqual(
+            preview_data["regularization_columns"],
+            ["logradouro", "logradouro_normalizado", "logradouro_canonico", "similaridade", "frequencia_grupo"],
+        )
