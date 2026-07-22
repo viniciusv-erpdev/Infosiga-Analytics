@@ -1,4 +1,4 @@
-# Infosiga Dashboard
+# Infosiga Analytics
 
 Sistema para análise de acidentes de trânsito a partir de planilhas exportadas do Infosiga.
 
