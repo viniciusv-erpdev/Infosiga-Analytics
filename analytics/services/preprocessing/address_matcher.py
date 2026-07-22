@@ -14,7 +14,8 @@ def regularize_addresses(df):
     if "logradouro_normalizado" not in df_processado.columns:
         df_processado["logradouro_normalizado"] = ""
 
-    valores_normalizados = df_processado["logradouro_normalizado"].fillna("").apply(normalize_address)
+    valores_normalizados = df_processado["logradouro_normalizado"].fillna("")
+
     df_processado["logradouro_normalizado"] = valores_normalizados
 
     normalizados = [valor for valor in valores_normalizados if valor]

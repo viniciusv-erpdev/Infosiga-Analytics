@@ -31,7 +31,7 @@ def cluster_addresses(lista_logradouros):
     )
 
     clusters = {}
-    for normalizado, frequencia in frequencias.items():
+    for normalizado, frequencia in logradouros_ordenados:
         tipo_via = normalizado.split()[0] if normalizado.split() else ""
         if tipo_via not in TIPOS_DE_VIA:
             continue
