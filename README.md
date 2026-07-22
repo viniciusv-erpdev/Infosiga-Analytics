@@ -15,13 +15,13 @@ Sistema para análise de acidentes de trânsito a partir de planilhas exportadas
 ### Clonar o projeto
 
 ```bash
-git clone https://github.com/seu-usuario/infosiga-dashboard.git
+git clone https://github.com/viniciusv-erpdev/Infosiga-Analytics
 ```
 
 Entrar na pasta:
 
 ```bash
-cd infosiga-dashboard
+cd infosiga-analytics
 ```
 
 Criar ambiente virtual:
