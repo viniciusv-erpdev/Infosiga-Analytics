@@ -74,8 +74,16 @@ def build_audit_rows(dataframe):
         else:
             audit_dataframe["logradouro_normalizado"] = ""
 
+    if "logradouro_limpo" not in audit_dataframe.columns:
+        if "logradouro_normalizado" in audit_dataframe.columns:
+            from analytics.services.preprocessing.address_semantic_cleaner import clean_semantic_address
+
+            audit_dataframe["logradouro_limpo"] = audit_dataframe["logradouro_normalizado"].apply(clean_semantic_address)
+        else:
+            audit_dataframe["logradouro_limpo"] = ""
+
     if "logradouro_canonico" not in audit_dataframe.columns:
-        audit_dataframe["logradouro_canonico"] = audit_dataframe["logradouro_normalizado"].fillna("")
+        audit_dataframe["logradouro_canonico"] = audit_dataframe["logradouro_limpo"].fillna("")
 
     if "similaridade" not in audit_dataframe.columns:
         audit_dataframe["similaridade"] = None
@@ -103,6 +111,7 @@ def build_audit_rows(dataframe):
             [
                 row.get("logradouro", ""),
                 row.get("logradouro_normalizado", ""),
+                row.get("logradouro_limpo", ""),
                 row.get("logradouro_canonico", ""),
                 similarity_display,
                 frequency_display,
@@ -113,6 +122,7 @@ def build_audit_rows(dataframe):
         "columns": [
             "Logradouro original",
             "Logradouro normalizado",
+            "Logradouro limpo",
             "Logradouro canônico",
             "Similaridade (%)",
             "Frequência do grupo",

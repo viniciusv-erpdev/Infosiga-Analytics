@@ -11,6 +11,7 @@ from analytics.services.file_loader import build_preview_data, process_upload
 from analytics.services.preprocessing.address_cluster import cluster_addresses
 from analytics.services.preprocessing.address_dictionary import build_address_dictionary
 from analytics.services.preprocessing.address_matcher import regularize_addresses
+from analytics.services.preprocessing.address_semantic_cleaner import clean_semantic_address
 
 
 class ProcessUploadTests(SimpleTestCase):
@@ -99,6 +100,12 @@ class ProcessUploadTests(SimpleTestCase):
             ["logradouro", "logradouro_normalizado", "logradouro_canonico", "similaridade", "frequencia_grupo"],
         )
 
+    def test_clean_semantic_address_removes_known_prefixes(self):
+        self.assertEqual(clean_semantic_address("lateral da rodovia anhanguera"), "rodovia anhanguera")
+        self.assertEqual(clean_semantic_address("marginal da avenida independencia"), "avenida independencia")
+        self.assertEqual(clean_semantic_address("alça de acesso da rodovia anhanguera"), "rodovia anhanguera")
+        self.assertEqual(clean_semantic_address("rodovia anhanguera km 10"), "rodovia anhanguera")
+
     def test_build_preview_data_includes_audit_rows_for_template(self):
         dataframe = pd.DataFrame({"logradouro": ["Av. Independencia", "Rua Teste"]})
 
@@ -106,10 +113,18 @@ class ProcessUploadTests(SimpleTestCase):
 
         self.assertEqual(
             preview_data["audit_columns"],
-            ["Logradouro original", "Logradouro normalizado", "Logradouro canônico", "Similaridade (%)", "Frequência do grupo"],
+            [
+                "Logradouro original",
+                "Logradouro normalizado",
+                "Logradouro limpo",
+                "Logradouro canônico",
+                "Similaridade (%)",
+                "Frequência do grupo",
+            ],
         )
         self.assertEqual(preview_data["audit_rows"][0][0], "Av. Independencia")
         self.assertEqual(preview_data["audit_rows"][0][1], "avenida independencia")
         self.assertEqual(preview_data["audit_rows"][0][2], "avenida independencia")
-        self.assertEqual(preview_data["audit_rows"][0][3], "-")
-        self.assertEqual(preview_data["audit_rows"][0][4], 0)
+        self.assertEqual(preview_data["audit_rows"][0][3], "avenida independencia")
+        self.assertEqual(preview_data["audit_rows"][0][4], "-")
+        self.assertEqual(preview_data["audit_rows"][0][5], 0)
