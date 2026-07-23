@@ -1,191 +1,183 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="pt-br">
+{% extends "analytics/base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infosiga Analytics</title>
+{% block content %}
+<form id="uploadForm" enctype="multipart/form-data" method="POST" action="{% url 'upload_file' %}">
+    {% csrf_token %}
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'analytics/css/home.css' %}">
-</head>
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-6 col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <h2 class="card-title mb-0 text-primary">
+                            <i class="bi bi-file-earmark-excel"></i> Importar planilha
+                        </h2>
+                        <span class="badge rounded-pill bg-light text-primary border">CSV / XLSX</span>
+                    </div>
 
-<body>
-    <nav class="navbar navbar-dark bg-primary fixed-top">
-        <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">
-                <i class="bi bi-graph-up"></i> Infosiga Analytics
-            </span>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            Selecione um arquivo CSV ou Excel (.csv, .xlsx)
+                        </label>
+
+                        {% with field_id=form.arquivo.id_for_label %}
+                        <div class="upload-shell">
+                            <label for="{{ field_id }}" class="upload-input" role="button">
+                                <div class="upload-icon">
+                                    <i class="bi bi-cloud-arrow-up"></i>
+                                </div>
+                                <div class="upload-text">
+                                    <span class="upload-title">Escolher ficheiro</span>
+                                    <span class="upload-hint" id="fileNameHint">Nenhum ficheiro selecionado</span>
+                                </div>
+                            </label>
+                            <div class="d-none">
+                                {{ form.arquivo }}
+                            </div>
+                        </div>
+                        {% endwith %}
+
+                        <small class="text-muted d-block mt-2">
+                            Formatos aceitos: .csv, .xlsx
+                        </small>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex">
+                        <button type="submit" class="btn btn-primary flex-grow-1" id="submitButton">
+                            <i class="bi bi-upload"></i> Carregar arquivo
+                        </button>
+                        <a href="{% url 'home' %}?clear=1" class="btn btn-outline-secondary flex-grow-1">
+                            <i class="bi bi-arrow-clockwise"></i> Limpar arquivo
+                        </a>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top">
+                        <h6 class="mb-3 text-primary fw-bold">
+                            <i class="bi bi-funnel"></i> Filtros
+                        </h6>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="tipoVia" class="form-label fw-semibold">Tipo de via</label>
+                                <select class="form-select" id="tipoVia" name="tipo_via">
+                                    <option value="">Selecione...</option>
+                                    <option value="urbana">Urbana</option>
+                                    <option value="estradas e rodovias">Estradas e rodovias</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="tipoSinistro" class="form-label fw-semibold">Tipo de sinistro</label>
+                                <select class="form-select" id="tipoSinistro" name="tipo_sinistro">
+                                    <option value="">Selecione...</option>
+                                    <option value="fatal">Fatal</option>
+                                    <option value="nao_fatal">Não fatal</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </nav>
+    </div>
+</form>
 
-    <main class="py-5 mt-5">
-        <div class="container">
-            <form id="uploadForm" enctype="multipart/form-data" method="POST" action="{% url 'upload_file' %}">
-                {% csrf_token %}
+{% if uploaded_file_info %}
+<div class="row justify-content-center mb-4">
+    <div class="col-lg-6 col-md-8">
+        <div class="card file-info-card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3 text-primary">
+                    <i class="bi bi-file-earmark-text"></i> Informações do arquivo
+                </h5>
 
-                <div class="row justify-content-center mb-5">
-                    <div class="col-lg-6 col-md-8">
-                        <div class="card shadow-sm border-0">
-                            <div class="card-body p-4">
-                                <h2 class="card-title mb-4 text-primary">
-                                    <i class="bi bi-file-earmark-excel"></i> Importar planilha
-                                </h2>
-
-                                <div class="mb-3">
-                                    <label for="fileInput" class="form-label">
-                                        Selecione um arquivo CSV ou Excel (.csv, .xlsx)
-                                    </label>
-                                    {{ form.arquivo }}
-                                    <small class="text-muted d-block mt-2">
-                                        Formatos aceitos: .csv, .xlsx
-                                    </small>
-                                </div>
-
-                                <div class="d-grid gap-2 d-md-flex">
-                                    <button type="submit" class="btn btn-primary flex-grow-1">
-                                        <i class="bi bi-upload"></i> Carregar arquivo
-                                    </button>
-                                    <a href="{% url 'home' %}?clear=1" class="btn btn-outline-secondary flex-grow-1">
-                                        <i class="bi bi-arrow-clockwise"></i> Limpar arquivo
-                                    </a>
-                                </div>
-
-                                <div class="mt-4 pt-2 border-top">
-                                    <h6 class="mb-3 text-primary fw-bold">
-                                        <i class="bi bi-funnel"></i> Filtros
-                                    </h6>
-
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="tipoVia" class="form-label fw-semibold">Tipo de via</label>
-                                            <select class="form-select" id="tipoVia" name="tipo_via">
-                                                <option value="">Selecione...</option>
-                                                <option value="urbana">Urbana</option>
-                                                <option value="estradas e rodovias">Estradas e rodovias</option>
-                                            </select>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label for="tipoSinistro" class="form-label fw-semibold">Tipo de sinistro</label>
-                                            <select class="form-select" id="tipoSinistro" name="tipo_sinistro">
-                                                <option value="">Selecione...</option>
-                                                <option value="fatal">Fatal</option>
-                                                <option value="nao_fatal">Não fatal</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="text-muted small text-uppercase fw-semibold">Nome</div>
+                        <div class="fw-semibold">{{ uploaded_file_info.nome }}</div>
                     </div>
-                </div>
-            </form>
-
-            {% if uploaded_file_info %}
-            <div class="row justify-content-center mb-4">
-                <div class="col-lg-6 col-md-8">
-                    <div class="card file-info-card shadow-sm border-0">
-                        <div class="card-body p-4">
-                            <h5 class="card-title mb-3 text-primary">
-                                <i class="bi bi-file-earmark-text"></i> Informações do arquivo
-                            </h5>
-
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="text-muted small text-uppercase fw-semibold">Nome</div>
-                                    <div class="fw-semibold">{{ uploaded_file_info.nome }}</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="text-muted small text-uppercase fw-semibold">Extensão</div>
-                                    <div class="fw-semibold">.{{ uploaded_file_info.extensao|upper }}</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="text-muted small text-uppercase fw-semibold">Tamanho</div>
-                                    <div class="fw-semibold">{{ uploaded_file_info.tamanho_kb|floatformat:2 }} KB</div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small text-uppercase fw-semibold">Extensão</div>
+                        <div class="fw-semibold">.{{ uploaded_file_info.extensao|upper }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small text-uppercase fw-semibold">Tamanho</div>
+                        <div class="fw-semibold">{{ uploaded_file_info.tamanho_kb|floatformat:2 }} KB</div>
                     </div>
                 </div>
             </div>
-            {% endif %}
-
-            {% if preview_data %}
-            <div class="row justify-content-center">
-                <div class="col-lg-10 col-md-12">
-                    <div class="card preview-card shadow-sm border-0">
-                        <div class="card-body p-4">
-                            <h3 class="card-title mb-3 text-primary">
-                                <i class="bi bi-table"></i> Pré-visualização dos dados
-                            </h3>
-
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            {% for column in preview_data.columns %}
-                                                <th>{{ column }}</th>
-                                            {% endfor %}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for row in preview_data.rows %}
-                                            <tr>
-                                                {% for value in row %}
-                                                    <td>{{ value }}</td>
-                                                {% endfor %}
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {% if preview_data.regularization_rows %}
-            <div class="row justify-content-center mt-4">
-                <div class="col-lg-10 col-md-12">
-                    <div class="card shadow-sm border-0">
-                        <div class="card-body p-4">
-                            <h3 class="card-title mb-3 text-primary">
-                                <i class="bi bi-diagram-3"></i> Agrupamento de logradouros
-                            </h3>
-
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            {% for column in preview_data.regularization_columns %}
-                                                <th>{{ column }}</th>
-                                            {% endfor %}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for row in preview_data.regularization_rows %}
-                                            <tr>
-                                                {% for value in row %}
-                                                    <td>{{ value }}</td>
-                                                {% endfor %}
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            {% endif %}
         </div>
-    </main>
+    </div>
+</div>
+{% endif %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'js/home.js' %}" defer></script>
-</body>
+{% if preview_data %}
+<div class="row justify-content-center">
+    <div class="col-lg-10 col-md-12">
+        <div class="card preview-card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h3 class="card-title mb-3 text-primary">
+                    <i class="bi bi-table"></i> Pré-visualização dos dados
+                </h3>
 
-</html>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                {% for column in preview_data.columns %}
+                                    <th>{{ column }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preview_data.rows %}
+                                <tr>
+                                    {% for value in row %}
+                                        <td>{{ value }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if preview_data.regularization_rows %}
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-10 col-md-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h3 class="card-title mb-3 text-primary">
+                    <i class="bi bi-diagram-3"></i> Agrupamento de logradouros
+                </h3>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                {% for column in preview_data.regularization_columns %}
+                                    <th>{{ column }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preview_data.regularization_rows %}
+                                <tr>
+                                    {% for value in row %}
+                                        <td>{{ value }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
