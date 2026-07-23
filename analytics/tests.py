@@ -98,3 +98,18 @@ class ProcessUploadTests(SimpleTestCase):
             preview_data["regularization_columns"],
             ["logradouro", "logradouro_normalizado", "logradouro_canonico", "similaridade", "frequencia_grupo"],
         )
+
+    def test_build_preview_data_includes_audit_rows_for_template(self):
+        dataframe = pd.DataFrame({"logradouro": ["Av. Independencia", "Rua Teste"]})
+
+        preview_data = build_preview_data(dataframe)
+
+        self.assertEqual(
+            preview_data["audit_columns"],
+            ["Logradouro original", "Logradouro normalizado", "Logradouro canônico", "Similaridade (%)", "Frequência do grupo"],
+        )
+        self.assertEqual(preview_data["audit_rows"][0][0], "Av. Independencia")
+        self.assertEqual(preview_data["audit_rows"][0][1], "avenida independencia")
+        self.assertEqual(preview_data["audit_rows"][0][2], "avenida independencia")
+        self.assertEqual(preview_data["audit_rows"][0][3], "-")
+        self.assertEqual(preview_data["audit_rows"][0][4], 0)

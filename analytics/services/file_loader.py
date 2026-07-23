@@ -6,6 +6,7 @@ from django.shortcuts import redirect
 
 from analytics.forms import UploadFileForm
 from analytics.services.filters import apply_filters
+from analytics.services.preprocessing.address_normalizer import normalize_address
 from analytics.services.preprocessing.pipeline import run_preprocessing
 
 
@@ -60,10 +61,77 @@ def load_dataframe(arquivo):
     raise ValueError("Não foi possível abrir o arquivo CSV.")
 
 
+def build_audit_rows(dataframe):
+    """Prepara os dados exibidos na auditoria de regularização sem alterar o fluxo do pipeline."""
+    if dataframe is None:
+        return {"columns": [], "rows": []}
+
+    audit_dataframe = dataframe.copy()
+
+    if "logradouro_normalizado" not in audit_dataframe.columns:
+        if "logradouro" in audit_dataframe.columns:
+            audit_dataframe["logradouro_normalizado"] = audit_dataframe["logradouro"].apply(normalize_address)
+        else:
+            audit_dataframe["logradouro_normalizado"] = ""
+
+    if "logradouro_canonico" not in audit_dataframe.columns:
+        audit_dataframe["logradouro_canonico"] = audit_dataframe["logradouro_normalizado"].fillna("")
+
+    if "similaridade" not in audit_dataframe.columns:
+        audit_dataframe["similaridade"] = None
+
+    if "frequencia_grupo" not in audit_dataframe.columns:
+        audit_dataframe["frequencia_grupo"] = 0
+
+    rows = []
+    for _, row in audit_dataframe.head(20).iterrows():
+        similarity_value = row.get("similaridade")
+        if pd.isna(similarity_value) or similarity_value is None:
+            similarity_display = "-"
+        elif isinstance(similarity_value, (int, float)):
+            similarity_display = f"{float(similarity_value):.0f}%"
+        else:
+            similarity_display = str(similarity_value)
+
+        frequency_value = row.get("frequencia_grupo")
+        if pd.isna(frequency_value) or frequency_value is None:
+            frequency_display = 0
+        else:
+            frequency_display = int(frequency_value)
+
+        rows.append(
+            [
+                row.get("logradouro", ""),
+                row.get("logradouro_normalizado", ""),
+                row.get("logradouro_canonico", ""),
+                similarity_display,
+                frequency_display,
+            ]
+        )
+
+    return {
+        "columns": [
+            "Logradouro original",
+            "Logradouro normalizado",
+            "Logradouro canônico",
+            "Similaridade (%)",
+            "Frequência do grupo",
+        ],
+        "rows": rows,
+    }
+
+
 def build_preview_data(dataframe):
     """Cria a estrutura de pré-visualização a partir do DataFrame processado."""
     if dataframe is None:
-        return {"columns": [], "rows": [], "regularization_columns": [], "regularization_rows": []}
+        return {
+            "columns": [],
+            "rows": [],
+            "regularization_columns": [],
+            "regularization_rows": [],
+            "audit_columns": [],
+            "audit_rows": [],
+        }
 
     columns_to_show = [col for col in ["logradouro", "logradouro_normalizado"] if col in dataframe.columns]
     regularization_columns = [
@@ -71,12 +139,15 @@ def build_preview_data(dataframe):
         for col in ["logradouro", "logradouro_normalizado", "logradouro_canonico", "similaridade", "frequencia_grupo"]
         if col in dataframe.columns
     ]
+    audit_data = build_audit_rows(dataframe)
 
     return {
         "columns": columns_to_show,
         "rows": dataframe[columns_to_show].head(20).values.tolist(),
         "regularization_columns": regularization_columns,
         "regularization_rows": dataframe[regularization_columns].head(20).values.tolist(),
+        "audit_columns": audit_data["columns"],
+        "audit_rows": audit_data["rows"],
     }
 
 
