@@ -262,3 +262,99 @@ Avenida Independência
 - Não espalhar responsabilidades entre view e services.
 - Manter o código simples e modular.
 - Explicar alterações arquiteturais antes de gerar código.
+
+---
+
+# Banco de validação de logradouros
+
+O projeto possui uma camada de persistência responsável por armazenar correções manuais e validações definitivas de logradouros.
+
+Esse banco funciona como uma fonte de verdade para o pipeline de preprocessing.
+
+Fluxo:
+
+Dados Infosiga
+
+↓
+
+Normalização automática
+
+↓
+
+Consulta ao banco AddressCorrection
+
+↓
+
+Aplicação das correções aprovadas
+
+↓
+
+Dados finais para análise
+
+
+---
+
+# Modelo AddressCorrection
+
+Localização:
+
+analytics/models.py
+
+
+Responsabilidade:
+
+Armazenar relacionamentos entre logradouros encontrados nos dados e seus respectivos nomes canônicos.
+
+
+Campos principais:
+
+- logradouro_original:
+    valor encontrado originalmente no dataset.
+
+- logradouro_limpo:
+    valor normalizado utilizado para comparação.
+
+- logradouro_canonico:
+    nome oficial definido pelo usuário ou algoritmo.
+
+- corrigido_manualmente:
+    indica se houve validação humana.
+
+- autor:
+    usuário responsável pela alteração.
+
+- created_at:
+    data de criação.
+
+- updated_at:
+    última atualização.
+
+
+---
+
+# Camada de persistência de correções
+
+Localização:
+
+analytics/persistence/corrections.py
+
+
+Responsabilidade:
+
+Centralizar acesso ao banco de correções.
+
+
+O pipeline nunca deve acessar diretamente:
+
+AddressCorrection.objects.filter()
+
+
+Toda consulta ao banco deve passar por funções de serviço.
+
+
+Exemplo:
+
+```python
+correction = get_correction_by_limpo(
+    logradouro_normalizado
+)
