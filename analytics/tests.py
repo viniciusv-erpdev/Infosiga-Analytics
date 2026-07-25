@@ -58,7 +58,7 @@ class ProcessUploadTests(SimpleTestCase):
 
         self.assertIn("avenida independencia", clusters)
         self.assertEqual(clusters["avenida independencia"]["frequencia"], 3)
-        self.assertIn("av independencia", clusters["avenida independencia"]["variacoes"])
+        self.assertIn("av independencia", clusters["avenida independencia"]["membros"])
 
     def test_build_address_dictionary_maps_variations_to_canonical(self):
         clusters = cluster_addresses(["avenida independencia", "av independencia"])
