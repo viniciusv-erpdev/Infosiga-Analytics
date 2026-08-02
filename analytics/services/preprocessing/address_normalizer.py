@@ -15,6 +15,28 @@ ABREVIACOES = {
     "est.": "estrada",
 }
 
+EXPANSOES_SEMANTICAS = {
+    "pres": "presidente",
+    "dep": "deputado",
+    "dr": "doutor",
+    "cel": "coronel",
+    "estr": "estrada",
+}
+
+
+def _expandir_abreviacoes_semanticas(tokens):
+    tokens_expandidos = []
+
+    for token in tokens:
+        substituto = EXPANSOES_SEMANTICAS.get(token, token)
+
+        if tokens_expandidos and tokens_expandidos[-1] == substituto:
+            continue
+
+        tokens_expandidos.append(substituto)
+
+    return tokens_expandidos
+
 
 def normalize_address(logradouro):
     """Normaliza um logradouro para um formato simples e consistente."""
@@ -39,4 +61,5 @@ def normalize_address(logradouro):
 
     tokens = texto.split()
     tokens_normalizados = [ABREVIACOES.get(token, token) for token in tokens]
-    return " ".join(tokens_normalizados)
+    tokens_expandidos = _expandir_abreviacoes_semanticas(tokens_normalizados)
+    return " ".join(tokens_expandidos)
