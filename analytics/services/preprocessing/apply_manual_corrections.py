@@ -16,12 +16,14 @@ def apply_manual_corrections(df):
 
     df_processado = df.copy()
 
-    df_processado["logradouro_canonico"] = ""
+    if "logradouro_canonico" not in df_processado.columns:
+        df_processado["logradouro_canonico"] = ""
+
+    if "correcao_manual_aplicada" not in df_processado.columns:
+        df_processado["correcao_manual_aplicada"] = False
 
     if "logradouro_limpo" not in df_processado.columns:
         return df_processado
-
-    df_processado["logradouro_canonico"] = ""
 
     cache = {}
     for index, row in df_processado.iterrows():
@@ -47,5 +49,6 @@ def apply_manual_corrections(df):
 
         if getattr(correcao, "status", None) == "APROVADO":
             df_processado.at[index, "logradouro_canonico"] = getattr(correcao, "logradouro_canonico", "")
+            df_processado.at[index, "correcao_manual_aplicada"] = True
 
     return df_processado

@@ -6,11 +6,13 @@ from analytics.services.preprocessing.similarity import similarity_score
 
 
 def regularize_addresses(df):
-    """Cria colunas canônicas e de similaridade para os logradouros limpos.
+    """Cria colunas canônicas, de similaridade e de confiança para os logradouros limpos.
 
     Usa exclusivamente 'logradouro_limpo' como fonte verdade para agrupamento e
     atribuição canônica. Registros já protegidos por uma correção manual
     mantêm o valor de 'logradouro_canonico' sem sofrer sobrescrita automática.
+    A coluna 'confianca_matching' classifica o resultado atual para auditoria,
+    sem alterar as colunas de canonização, similaridade ou frequência.
     """
     if df is None:
         return df
@@ -19,6 +21,9 @@ def regularize_addresses(df):
 
     if "logradouro_canonico" not in df_processado.columns:
         df_processado["logradouro_canonico"] = ""
+
+    if "correcao_manual_aplicada" not in df_processado.columns:
+        df_processado["correcao_manual_aplicada"] = False
 
     if "logradouro_limpo" in df_processado.columns:
         valores_limpos = df_processado["logradouro_limpo"].fillna("")
@@ -30,7 +35,7 @@ def regularize_addresses(df):
     df_processado["logradouro_limpo"] = valores_limpos
 
     # Registros protegidos não participam do agrupamento automático
-    protegidos = df_processado["logradouro_canonico"].notna() & df_processado["logradouro_canonico"].astype(str).str.strip().ne("")
+    protegidos = df_processado["correcao_manual_aplicada"].fillna(False).astype(bool)
 
     valores_para_cluster = [
         valor for valor, protegido in zip(valores_limpos, protegidos) if valor and not protegido
@@ -53,6 +58,43 @@ def regularize_addresses(df):
     # Similaridade é calculada somente para registros processados automaticamente
     df_processado["similaridade"] = df_processado.apply(
         lambda row: None if protegidos.loc[row.name] else similarity_score(row["logradouro_limpo"], row["logradouro_canonico"]),
+        axis=1,
+    )
+
+    def classificar_confianca(valor_limpo, valor_canonico, protegido, similaridade):
+        if protegido:
+            return "MANUAL"
+
+        valor_limpo = "" if pd.isna(valor_limpo) else str(valor_limpo).strip()
+        valor_canonico = "" if pd.isna(valor_canonico) else str(valor_canonico).strip()
+
+        if not valor_limpo:
+            return "BAIXA"
+
+        if valor_limpo == valor_canonico:
+            return "EXATO"
+
+        if pd.isna(similaridade):
+            return "BAIXA"
+
+        try:
+            valor_similaridade = float(similaridade)
+        except (TypeError, ValueError):
+            return "BAIXA"
+
+        if valor_similaridade >= 98:
+            return "ALTA"
+        if valor_similaridade >= 90:
+            return "MEDIA"
+        return "BAIXA"
+
+    df_processado["confianca_matching"] = df_processado.apply(
+        lambda row: classificar_confianca(
+            row["logradouro_limpo"],
+            row["logradouro_canonico"],
+            protegidos.loc[row.name],
+            row["similaridade"],
+        ),
         axis=1,
     )
 
