@@ -15,3 +15,11 @@ db.sqlite3
 media/
 
 uploads/
+
+/dados_locais/*
+
+!/dados_locais/.gitkeep
+
+*.csv
+
+*.xlsx
