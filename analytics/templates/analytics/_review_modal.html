@@ -1,0 +1,67 @@
+<!-- Modal de revisão (somente leitura nesta primeira etapa) -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Revisão de Logradouro</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold">Logradouro original</label>
+            <div id="rv-logradouro-original" class="fw-semibold"></div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Normalizado</label>
+            <div id="rv-logradouro-normalizado" class="text-muted"></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Limpo</label>
+            <div id="rv-logradouro-limpo" class="text-muted"></div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Canônico sugerido</label>
+            <div id="rv-logradouro-canonico" class="text-muted"></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Correção manual aplicada</label>
+            <div id="rv-correcao-manual" class="text-muted"></div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Confiança</label>
+            <div id="rv-confianca" class="text-muted"></div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Similaridade</label>
+            <div id="rv-similaridade" class="text-muted"></div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Frequência do grupo</label>
+            <div id="rv-frequencia" class="text-muted"></div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Latitude</label>
+            <div id="rv-latitude" class="text-muted"></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Longitude</label>
+            <div id="rv-longitude" class="text-muted"></div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Status da revisão (persistido)</label>
+            <div id="rv-status-revisao" class="text-muted"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>

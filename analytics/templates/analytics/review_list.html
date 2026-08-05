@@ -1,0 +1,79 @@
+{% extends "analytics/base.html" %}
+{% load static %}
+
+{% block title %}Central de Revisão - Infosiga Analytics{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mb-4">
+    <div class="col-lg-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h3 class="card-title mb-0 text-primary"><i class="bi bi-list-check"></i> Central de Revisão de Logradouros</h3>
+                    <a href="{% url 'home' %}" class="btn btn-outline-secondary">Voltar</a>
+                </div>
+
+                <p class="text-muted">Visualização somente leitura. Use a página de upload para gerar dados.</p>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0" id="reviewTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Logradouro original</th>
+                                <th>Normalizado</th>
+                                <th>Limpo</th>
+                                <th>Canônico sugerido</th>
+                                <th>Confiança</th>
+                                <th>Similaridade</th>
+                                <th>Frequência</th>
+                                <th>Manual</th>
+                                <th>Status revisão</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                            <tr data-index="{{ forloop.counter0 }}">
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ record.logradouro }}</td>
+                                <td>{{ record.logradouro_normalizado }}</td>
+                                <td>{{ record.logradouro_limpo }}</td>
+                                <td>{{ record.logradouro_canonico }}</td>
+                                <td>{{ record.confianca_matching|default:'-' }}</td>
+                                <td>{{ record.similaridade|default:'-' }}</td>
+                                <td>{{ record.frequencia_grupo|default:0 }}</td>
+                                <td>
+                                    {% if record.correcao_manual_nome %}
+                                        <span class="badge bg-success">SIM</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ record.status_revisao|default:'-' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary btn-review" data-index="{{ forloop.counter0 }}">Revisar</button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="11" class="text-center text-muted">Nenhum registro disponível. Faça upload de um arquivo para gerar dados.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+  {% include "analytics/_review_modal.html" %}
+
+{{ records|json_script:"review-records-data" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'analytics/js/review.js' %}" defer></script>
+{% endblock %}
