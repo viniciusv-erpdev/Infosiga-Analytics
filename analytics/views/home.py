@@ -1,7 +1,7 @@
 from django.shortcuts import render
 
-from .forms import UploadFileForm
-from .services.file_loader import process_upload
+from analytics.forms import UploadFileForm
+from analytics.services.file_loader import process_upload
 
 
 def home(request):
