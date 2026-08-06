@@ -39,7 +39,7 @@
                                 <td>{{ record.logradouro }}</td>
                                 <td>{{ record.logradouro_normalizado }}</td>
                                 <td>{{ record.logradouro_limpo }}</td>
-                                <td>{{ record.logradouro_canonico }}</td>
+                                <td class="cell-canonico">{{ record.logradouro_canonico }}</td>
                                 <td>{{ record.confianca_matching|default:'-' }}</td>
                                 <td>{{ record.similaridade|default:'-' }}</td>
                                 <td>{{ record.frequencia_grupo|default:0 }}</td>
@@ -50,7 +50,7 @@
                                         <span class="text-muted">—</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ record.status_revisao|default:'-' }}</td>
+                                <td class="cell-status">{{ record.status_revisao|default:'-' }}</td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-primary btn-review" data-index="{{ forloop.counter0 }}">Revisar</button>
                                 </td>

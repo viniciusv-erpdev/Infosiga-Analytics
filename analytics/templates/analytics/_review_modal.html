@@ -24,7 +24,7 @@
 
           <div class="col-md-6">
             <label class="form-label fw-semibold">Canônico sugerido</label>
-            <div id="rv-logradouro-canonico" class="text-muted"></div>
+            <input id="rv-logradouro-canonico" class="form-control" />
           </div>
           <div class="col-md-6">
             <label class="form-label fw-semibold">Correção manual aplicada</label>
@@ -55,12 +55,27 @@
 
           <div class="col-12">
             <label class="form-label fw-semibold">Status da revisão (persistido)</label>
-            <div id="rv-status-revisao" class="text-muted"></div>
+            <select id="rv-status-revisao" class="form-select">
+              <option value="PENDENTE">PENDENTE</option>
+              <option value="APROVADO">APROVADO</option>
+              <option value="REJEITADO">REJEITADO</option>
+            </select>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Autor</label>
+            <input id="rv-autor" class="form-control" />
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Observação</label>
+            <textarea id="rv-note" class="form-control" rows="3"></textarea>
           </div>
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        <button type="button" id="rv-save-btn" class="btn btn-primary">Salvar</button>
       </div>
     </div>
   </div>

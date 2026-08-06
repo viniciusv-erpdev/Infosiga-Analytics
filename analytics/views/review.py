@@ -3,6 +3,11 @@ from django.shortcuts import render
 
 from analytics.persistence.corrections import get_correction_by_limpo
 
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import json
+
+from analytics.services.review_service import ReviewService
 
 def get_preview_source(session):
     """Ponto de abstração para obter os dados da fonte da Central de Revisão.
@@ -116,3 +121,49 @@ def review_list(request):
     }
 
     return render(request, "analytics/review_list.html", context)
+
+@require_POST
+def review_submit(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return JsonResponse({"success": False, "error": "JSON inválido"}, status=400)
+
+    logradouro_original = payload.get("logradouro_original", "")
+    logradouro_limpo = payload.get("logradouro_limpo", "")
+    logradouro_canonico = payload.get("logradouro_canonico", "")
+    status = payload.get("status", "PENDENTE")
+    autor = payload.get("autor", "")
+    note = payload.get("note", "")
+
+    if not logradouro_limpo:
+        return JsonResponse({"success": False, "error": "logradouro_limpo é obrigatório"}, status=400)
+
+    try:
+        correction = ReviewService.submit_correction(
+            logradouro_original=logradouro_original,
+            logradouro_limpo=logradouro_limpo,
+            logradouro_canonico=logradouro_canonico,
+            status=status,
+            origem="MANUAL",
+            autor=autor,
+            origin="UI",
+            note=note,
+        )
+
+        if correction is None:
+            return JsonResponse({"success": False, "error": "Não foi possível salvar a correção."}, status=500)
+
+        data = {
+            "id": getattr(correction, "id", None),
+            "logradouro_limpo": getattr(correction, "logradouro_limpo", ""),
+            "logradouro_canonico": getattr(correction, "logradouro_canonico", ""),
+            "status": getattr(correction, "status", ""),
+            "autor": getattr(correction, "autor", ""),
+            "updated_at": getattr(correction, "updated_at", None),
+        }
+
+        return JsonResponse({"success": True, "data": data})
+
+    except Exception as exc:
+        return JsonResponse({"success": False, "error": str(exc)}, status=500)
