@@ -45,5 +45,6 @@ def carregar_dados_locais(nome_arquivo="sinistros_teste.csv"):
 
 # Para carregar o arquivo de configuração do shell
 #exec(open("shell_setup.py", encoding="utf-8").read())
+
 # Para carregar dados:
 # df = carregar_dados_locais()

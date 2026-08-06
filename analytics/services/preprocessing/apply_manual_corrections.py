@@ -1,6 +1,6 @@
 import pandas as pd
 
-from analytics.persistence.corrections import get_correction_by_limpo
+from analytics.persistence.corrections import get_approved_correction_by_limpo, get_correction_by_limpo
 
 
 def apply_manual_corrections(df):
