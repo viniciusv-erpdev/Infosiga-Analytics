@@ -1,5 +1,6 @@
 from typing import Optional
 from analytics.models import AddressCorrection, CorrectionAudit
+from django.db import transaction
 
 def get_correction_by_limpo(
     logradouro_limpo: str
@@ -32,6 +33,32 @@ def get_approved_correction_by_limpo(logradouro_limpo: str) -> Optional[AddressC
         .first()
     )
 
+#teste
+def get_approved_corrections_by_limpos(logradouros_limpos):
+    """
+    Retorna as correções aprovadas para uma coleção de logradouros limpos.
+
+    O resultado é indexado pelo próprio logradouro_limpo.
+    """
+    if not logradouros_limpos:
+        return {}
+
+    corrections = (
+        AddressCorrection.objects
+        .filter(
+            logradouro_limpo__in=logradouros_limpos,
+            status="APROVADO",
+        )
+        .order_by("-updated_at")
+    )
+
+    result = {}
+
+    for correction in corrections:
+        if correction.logradouro_limpo not in result:
+            result[correction.logradouro_limpo] = correction
+
+    return result
 
 def _create_audit_entry(
     correction: AddressCorrection | None,
@@ -70,32 +97,33 @@ def save_correction_with_audit(
     origin: str = "UI",
     note: str = "",
 ) -> AddressCorrection:
-    """Cria uma nova correção e registra auditoria inicial."""
-    correction = save_correction(
-        logradouro_original=logradouro_original,
-        logradouro_limpo=logradouro_limpo,
-        logradouro_canonico=logradouro_canonico,
-        status=status,
-        origem=origem,
-        score_similaridade=score_similaridade,
-        autor=autor,
-    )
 
-    # Auditoria de criação — previous_value vazio
-    _create_audit_entry(
-        correction=correction,
-        logradouro_limpo=logradouro_limpo,
-        field_name="__create__",
-        previous_value=None,
-        new_value=logradouro_canonico,
-        previous_status=None,
-        new_status=status,
-        autor=autor,
-        origin=origin,
-        note=note,
-    )
+    with transaction.atomic():
 
-    return correction
+        correction = save_correction(
+            logradouro_original=logradouro_original,
+            logradouro_limpo=logradouro_limpo,
+            logradouro_canonico=logradouro_canonico,
+            status=status,
+            origem=origem,
+            score_similaridade=score_similaridade,
+            autor=autor,
+        )
+
+        _create_audit_entry(
+            correction=correction,
+            logradouro_limpo=logradouro_limpo,
+            field_name="__create__",
+            previous_value=None,
+            new_value=logradouro_canonico,
+            previous_status=None,
+            new_status=status,
+            autor=autor,
+            origin=origin,
+            note=note,
+        )
+
+        return correction
 
 
 def update_correction_with_audit(
@@ -110,41 +138,79 @@ def update_correction_with_audit(
     if correction is None:
         raise ValueError("correction must be provided")
 
-    logradouro_limpo = correction.logradouro_limpo
-    previous_status = correction.status
+    allowed_fields = {
+        "logradouro_canonico",
+        "status",
+    }
 
-    for field, value in fields.items():
+    invalid_fields = set(fields) - allowed_fields
 
-        previous_value = getattr(correction, field, None)
-
-        # Não registra nem aplica alterações inexistentes
-        if previous_value == value:
-            continue
-
-        new_status = (
-            value
-            if field == "status"
-            else previous_status
+    if invalid_fields:
+        raise ValueError(
+            f"Campos não permitidos para atualização: "
+            f"{', '.join(sorted(invalid_fields))}"
         )
 
-        _create_audit_entry(
-            correction=correction,
-            logradouro_limpo=logradouro_limpo,
-            field_name=field,
-            previous_value=previous_value,
-            new_value=value,
-            previous_status=previous_status,
-            new_status=new_status,
-            autor=autor,
-            origin=origin,
-            note=note,
-        )
+    if not fields:
+        return correction
+
+    with transaction.atomic():
+
+        logradouro_limpo = correction.logradouro_limpo
+        previous_status = correction.status
+
+        changes = []
+
+        for field, value in fields.items():
+
+            previous_value = getattr(correction, field)
+
+            if previous_value == value:
+                continue
+
+            new_status = (
+                value
+                if field == "status"
+                else previous_status
+            )
+
+            changes.append(
+                {
+                    "field": field,
+                    "previous_value": previous_value,
+                    "new_value": value,
+                    "previous_status": previous_status,
+                    "new_status": new_status,
+                }
+            )
+
+        if not changes:
+            return correction
+
+        for change in changes:
+
+            _create_audit_entry(
+                correction=correction,
+                logradouro_limpo=logradouro_limpo,
+                field_name=change["field"],
+                previous_value=change["previous_value"],
+                new_value=change["new_value"],
+                previous_status=change["previous_status"],
+                new_status=change["new_status"],
+                autor=autor,
+                origin=origin,
+                note=note,
+            )
+
+            if apply_update:
+                setattr(
+                    correction,
+                    change["field"],
+                    change["new_value"]
+                )
 
         if apply_update:
-            setattr(correction, field, value)
-
-    if apply_update:
-        correction.save()
+            correction.save()
 
     return correction
 

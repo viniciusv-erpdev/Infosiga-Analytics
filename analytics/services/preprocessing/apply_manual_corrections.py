@@ -1,16 +1,18 @@
 import pandas as pd
 
-from analytics.persistence.corrections import get_approved_correction_by_limpo
+from analytics.persistence.corrections import (
+    get_approved_corrections_by_limpos,
+)
 
 
 def apply_manual_corrections(df):
-    """Aplica correções manuais persistidas ao DataFrame sem modificar os dados originais.
+    """Aplica correções manuais aprovadas ao DataFrame.
 
-    A função consulta o banco por meio de ``get_correction_by_limpo`` usando a
-    coluna ``logradouro_limpo`` como chave. Somente correções com status
-    aprovado são aplicadas e o valor resultante é preenchido em
-    ``logradouro_canonico``. O DataFrame original não é alterado in-place.
+    As correções são consultadas em lote no banco utilizando
+    `logradouro_limpo` como chave. Somente correções com status
+    APROVADO são aplicadas.
     """
+
     if df is None:
         return None
 
@@ -25,32 +27,41 @@ def apply_manual_corrections(df):
     if "logradouro_limpo" not in df_processado.columns:
         return df_processado
 
-    cache = {}
-    for index, row in df_processado.iterrows():
-        logradouro_limpo = row.get("logradouro_limpo")
+    # Obtém os logradouros válidos presentes no DataFrame.
+    limpos = (
+        df_processado["logradouro_limpo"]
+        .dropna()
+        .astype(str)
+        .str.strip()
+    )
 
-        if pd.isna(logradouro_limpo):
-            continue
+    limpos_unicos = limpos[limpos != ""].unique().tolist()
 
-        if not isinstance(logradouro_limpo, str):
-            logradouro_limpo = str(logradouro_limpo)
+    if not limpos_unicos:
+        return df_processado
 
-        logradouro_limpo = logradouro_limpo.strip()
-        if not logradouro_limpo:
-            continue
+    # Uma única consulta ao banco.
+    correcoes = get_approved_corrections_by_limpos(limpos_unicos)
 
-        if logradouro_limpo not in cache:
-            correcao = get_approved_correction_by_limpo(logradouro_limpo)
-            cache[logradouro_limpo] = correcao
+    if not correcoes:
+        return df_processado
 
-        correcao = cache[logradouro_limpo]
-        if correcao is None:
-            continue
+    # Cria um mapa:
+    # "avenida caramuru" -> "Avenida Caramuru"
+    mapa_correcoes = {
+        logradouro_limpo: correction.logradouro_canonico
+        for logradouro_limpo, correction in correcoes.items()
+    }
 
-        if correcao is not None:
-            df_processado.at[index, "logradouro_canonico"] = (
-                correcao.logradouro_canonico
-            )
-            df_processado.at[index, "correcao_manual_aplicada"] = True
+    # Identifica quais registros possuem correção manual aprovada.
+    mask = limpos.isin(mapa_correcoes)
+
+    # Aplica o nome canônico.
+    df_processado.loc[mask, "logradouro_canonico"] = (
+        limpos[mask].map(mapa_correcoes)
+    )
+
+    # Marca os registros afetados.
+    df_processado.loc[mask, "correcao_manual_aplicada"] = True
 
     return df_processado
