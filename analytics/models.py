@@ -17,7 +17,8 @@ class AddressCorrection(models.Model):
     logradouro_original = models.TextField()
 
     logradouro_limpo = models.TextField(
-        db_index=True
+        db_index=True,
+        unique=True
     )
 
     logradouro_canonico = models.TextField()

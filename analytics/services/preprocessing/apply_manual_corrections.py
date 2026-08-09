@@ -1,6 +1,6 @@
 import pandas as pd
 
-from analytics.persistence.corrections import get_approved_correction_by_limpo, get_correction_by_limpo
+from analytics.persistence.corrections import get_approved_correction_by_limpo
 
 
 def apply_manual_corrections(df):
@@ -40,15 +40,17 @@ def apply_manual_corrections(df):
             continue
 
         if logradouro_limpo not in cache:
-            correcao = get_correction_by_limpo(logradouro_limpo)
+            correcao = get_approved_correction_by_limpo(logradouro_limpo)
             cache[logradouro_limpo] = correcao
 
         correcao = cache[logradouro_limpo]
         if correcao is None:
             continue
 
-        if getattr(correcao, "status", None) == "APROVADO":
-            df_processado.at[index, "logradouro_canonico"] = getattr(correcao, "logradouro_canonico", "")
+        if correcao is not None:
+            df_processado.at[index, "logradouro_canonico"] = (
+                correcao.logradouro_canonico
+            )
             df_processado.at[index, "correcao_manual_aplicada"] = True
 
     return df_processado

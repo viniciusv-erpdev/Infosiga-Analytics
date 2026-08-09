@@ -106,31 +106,35 @@ def update_correction_with_audit(
     note: str = "",
     **fields,
 ) -> AddressCorrection:
-    """Atualiza campos em `correction` e cria registros de auditoria.
 
-    Quando `apply_update` for False, somente um registro de auditoria será
-    criado, sem alterar o objeto `correction`. Isso permite registrar
-    tentativas de alteração sem sobrescrever uma correção aprovada ativa.
-    """
     if correction is None:
         raise ValueError("correction must be provided")
 
-    logradouro_limpo = getattr(correction, "logradouro_limpo", "")
-
-    previous_status = getattr(correction, "status", None)
+    logradouro_limpo = correction.logradouro_limpo
+    previous_status = correction.status
 
     for field, value in fields.items():
-        prev = getattr(correction, field, None)
 
-        # create audit entry per field
+        previous_value = getattr(correction, field, None)
+
+        # Não registra nem aplica alterações inexistentes
+        if previous_value == value:
+            continue
+
+        new_status = (
+            value
+            if field == "status"
+            else previous_status
+        )
+
         _create_audit_entry(
             correction=correction,
             logradouro_limpo=logradouro_limpo,
             field_name=field,
-            previous_value=prev,
+            previous_value=previous_value,
             new_value=value,
             previous_status=previous_status,
-            new_status=fields.get("status", previous_status),
+            new_status=new_status,
             autor=autor,
             origin=origin,
             note=note,

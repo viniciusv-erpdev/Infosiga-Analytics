@@ -24,13 +24,12 @@ class ReviewService:
         origin: str = "UI",
         note: str = "",
     ):
-        # Verifica se já existe correção aprovada
-        approved = persistence.get_approved_correction_by_limpo(logradouro_limpo)
+        if not logradouro_limpo:
+            raise ValueError("logradouro_limpo é obrigatório")
 
-        # Busca a correção mais recente (se existir)
         current = persistence.get_correction_by_limpo(logradouro_limpo)
 
-        # Se não existe correção atual, cria uma
+        # Primeira correção para este logradouro
         if current is None:
             return persistence.save_correction_with_audit(
                 logradouro_original=logradouro_original,
@@ -44,32 +43,11 @@ class ReviewService:
                 note=note,
             )
 
-        # Se existe correção aprovada e a submissão não é APROVADA,
-        # não sobrescrever a correção aprovada; registrar auditoria apenas.
-        if approved is not None and status != "APROVADO":
-            # cria auditoria sem aplicar atualização
-            persistence.update_correction_with_audit(
-                approved,
-                apply_update=False,
-                autor=autor,
-                origin=origin,
-                note=note,
-                logradouro_canonico=logradouro_canonico,
-                status=status,
-            )
-            return approved
-
-        # Caso contrário, atualiza o registro atual (ou o aprovado) com auditoria
-        target = approved if (approved is not None and status == "APROVADO") else current
-
+        # Correção já existente: atualiza o mesmo registro
         return persistence.update_correction_with_audit(
-            target,
-            logradouro_original=logradouro_original,
-            logradouro_limpo=logradouro_limpo,
+            current,
             logradouro_canonico=logradouro_canonico,
             status=status,
-            origem=origem,
-            score_similaridade=score_similaridade,
             autor=autor,
             origin=origin,
             note=note,

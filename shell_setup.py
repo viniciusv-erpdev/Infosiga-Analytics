@@ -9,7 +9,7 @@ from analytics.persistence.corrections import get_correction_by_limpo
 from analytics.services.preprocessing.address_normalizer import normalize_address
 from analytics.services.preprocessing.address_matcher import regularize_addresses
 from analytics.services.preprocessing.pipeline import run_preprocessing
-
+from analytics.services.preprocessing.apply_manual_corrections import apply_manual_corrections
 # ============================================================
 # CONFIGURAÇÕES
 # ============================================================
