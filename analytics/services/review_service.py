@@ -43,7 +43,12 @@ class ReviewService:
                 note=note,
             )
 
-        # Correção já existente: atualiza o mesmo registro
+        # Uma correção APROVADA é a autoridade ativa.
+        # PENDENTE e REJEITADO não podem sobrescrevê-la.
+        if current.status == "APROVADO" and status != "APROVADO":
+            return current
+
+        # Caso contrário, atualiza o registro existente.
         return persistence.update_correction_with_audit(
             current,
             logradouro_canonico=logradouro_canonico,
