@@ -215,10 +215,16 @@ def process_upload(request):
     print("[DEBUG] antes de criar Dataset")
 
     dataset = DatasetService.create_from_upload(
-    usuario=request.user,
-    arquivo=arquivo,
-    quantidade_registros=len(dataframe_filtrado),
-)
+        usuario=request.user,
+        arquivo=arquivo,
+        quantidade_registros=len(dataframe),
+    )
+
+    dataframe_filtrado = apply_filters(
+        dataframe,
+        tipo_via=tipo_via,
+        tipo_sinistro=tipo_sinistro
+    )
 
     print(f"[DEBUG] Dataset criado: {dataset.id}")
     print(f"[DEBUG] arquivo salvo: {dataset.arquivo.name}")
