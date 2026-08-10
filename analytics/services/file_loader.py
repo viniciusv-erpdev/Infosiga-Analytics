@@ -1,14 +1,16 @@
 import os
 
+from django.http import request
 import pandas as pd
 from django.contrib import messages
 from django.shortcuts import redirect
 
 from analytics.forms import UploadFileForm
+from analytics.persistence import dataset
 from analytics.services.filters import apply_filters
 from analytics.services.preprocessing.address_normalizer import normalize_address
 from analytics.services.preprocessing.pipeline import run_preprocessing
-
+from analytics.services.dataset_service import DatasetService
 
 ALLOWED_EXTENSIONS = {".csv", ".xlsx"}
 
@@ -170,6 +172,10 @@ def process_upload(request):
     if not form.is_valid():
         return form, None
 
+    print("[DEBUG] formulário válido")
+    print("[DEBUG] usuário:", request.user)
+    print("[DEBUG] autenticado:", request.user.is_authenticated)
+
     arquivo = form.cleaned_data["arquivo"]
     file_info = get_file_info(arquivo)
 
@@ -183,7 +189,9 @@ def process_upload(request):
         return form, redirect("home")
 
     try:
+        print("[DEBUG] antes de load_dataframe")
         dataframe = load_dataframe(arquivo)
+        print("[DEBUG] depois de load_dataframe")
     except ValueError as exc:
         messages.error(request, str(exc))
         return form, redirect("home")
@@ -197,7 +205,28 @@ def process_upload(request):
     dataframe_filtrado = apply_filters(dataframe, tipo_via=tipo_via, tipo_sinistro=tipo_sinistro)
     print(f"[DEBUG] linhas depois dos filtros: {len(dataframe_filtrado)}")
 
+    if not request.user.is_authenticated:
+        messages.error(
+            request,
+            "É necessário estar autenticado para realizar um upload."
+        )
+        return form, redirect("home")
+
+    print("[DEBUG] antes de criar Dataset")
+
+    dataset = DatasetService.create_from_upload(
+    usuario=request.user,
+    arquivo=arquivo,
+    quantidade_registros=len(dataframe_filtrado),
+)
+
+    print(f"[DEBUG] Dataset criado: {dataset.id}")
+    print(f"[DEBUG] arquivo salvo: {dataset.arquivo.name}")
+
     dataframe_processado = run_preprocessing(dataframe_filtrado)
+
+    print("[DEBUG] preprocessing concluído")
+
     request.session["preview_data"] = build_preview_data(dataframe_processado)
     request.session["uploaded_file_info"] = {
         "nome": file_info["nome"],

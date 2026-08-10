@@ -1,0 +1,53 @@
+{% extends 'analytics/base.html' %}
+
+{% block title %}Criar conta | Infosiga Analytics{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-5 col-md-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h2 class="card-title mb-3 text-primary">Criar conta</h2>
+                <p class="text-muted">Cadastre-se para importar datasets e utilizar o fluxo de análise.</p>
+
+                {% if form.errors %}
+                    <div class="alert alert-danger" role="alert">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Usuário</label>
+                        {{ form.username }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_password1" class="form-label">Senha</label>
+                        {{ form.password1 }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_password2" class="form-label">Confirmar senha</label>
+                        {{ form.password2 }}
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Criar conta</button>
+                    </div>
+                </form>
+
+                <div class="mt-3 text-center">
+                    <span class="text-muted">Já possui conta?</span>
+                    <a href="{% url 'login' %}" class="ms-1">Entrar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

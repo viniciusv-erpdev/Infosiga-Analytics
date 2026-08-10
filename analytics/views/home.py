@@ -1,9 +1,11 @@
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
 from analytics.forms import UploadFileForm
 from analytics.services.file_loader import process_upload
 
 
+@login_required
 def home(request):
     if request.GET.get("clear") == "1":
         request.session.pop("preview_data", None)
@@ -23,6 +25,7 @@ def home(request):
     return render(request, "analytics/home.html", context)
 
 
+@login_required
 def upload_file(request):
     previous_preview_data = request.session.get("preview_data")
     form, response = process_upload(request)

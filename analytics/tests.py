@@ -2,16 +2,79 @@ from io import BytesIO
 from unittest.mock import patch
 
 import pandas as pd
+from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.db import SessionStore
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import RequestFactory, SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase, TestCase
+from django.urls import reverse
 
 from analytics.services.file_loader import build_preview_data, process_upload
 from analytics.services.preprocessing.address_cluster import cluster_addresses
 from analytics.services.preprocessing.address_dictionary import build_address_dictionary
 from analytics.services.preprocessing.address_matcher import regularize_addresses
 from analytics.services.preprocessing.address_semantic_cleaner import clean_semantic_address
+
+
+class AuthFlowTests(TestCase):
+    def test_home_requires_login(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response.url)
+
+    def test_user_can_register_and_login(self):
+        response = self.client.post(
+            reverse("register"),
+            {"username": "novo_usuario", "password1": "SenhaForte123", "password2": "SenhaForte123"},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        user = get_user_model().objects.get(username="novo_usuario")
+        self.assertTrue(user.check_password("SenhaForte123"))
+        self.assertNotEqual(user.password, "SenhaForte123")
+
+        login_response = self.client.post(
+            reverse("login"),
+            {"username": "novo_usuario", "password": "SenhaForte123"},
+            follow=True,
+        )
+
+        self.assertEqual(login_response.status_code, 200)
+        self.assertTrue(login_response.wsgi_request.user.is_authenticated)
+
+    def test_duplicate_username_is_rejected(self):
+        get_user_model().objects.create_user(username="duplicado", password="SenhaForte123")
+
+        response = self.client.post(
+            reverse("register"),
+            {"username": "duplicado", "password1": "SenhaForte123", "password2": "SenhaForte123"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Este nome de usuário já existe")
+
+    def test_bad_password_is_rejected(self):
+        get_user_model().objects.create_user(username="senha_errada", password="SenhaForte123")
+
+        response = self.client.post(
+            reverse("login"),
+            {"username": "senha_errada", "password": "errada"},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Por favor, entre com um usuário e senha corretos")
+
+    def test_logout_clears_session(self):
+        user = get_user_model().objects.create_user(username="logout_user", password="SenhaForte123")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("logout"), follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
 
 
 class ProcessUploadTests(SimpleTestCase):

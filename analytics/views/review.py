@@ -1,4 +1,5 @@
 import json
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
 from analytics.persistence.corrections import get_correction_by_limpo
@@ -112,6 +113,7 @@ def _normalize_row_maps(preview):
     return unified
 
 
+@login_required
 def review_list(request):
     preview = get_preview_source(request.session) or {}
     records = _normalize_row_maps(preview)
@@ -122,6 +124,7 @@ def review_list(request):
 
     return render(request, "analytics/review_list.html", context)
 
+@login_required
 @require_POST
 def review_submit(request):
     try:

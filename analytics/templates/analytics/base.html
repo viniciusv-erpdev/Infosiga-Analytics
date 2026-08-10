@@ -23,10 +23,19 @@
 
     <nav class="navbar navbar-dark fixed-top">
         <div class="container-fluid px-4">
-            <span class="navbar-brand mb-0 h1 d-flex align-items-center gap-2">
+            <a class="navbar-brand mb-0 h1 d-flex align-items-center gap-2" href="{% url 'home' %}">
                 <i class="bi bi-graph-up-arrow"></i>
                 <span>Infosiga Analytics</span>
-            </span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                {% if user.is_authenticated %}
+                    <span class="navbar-text text-light me-2">Usuário: {{ user.username }}</span>
+                    <a class="btn btn-outline-light btn-sm" href="{% url 'logout' %}">Sair</a>
+                {% else %}
+                    <a class="btn btn-outline-light btn-sm" href="{% url 'login' %}">Entrar</a>
+                    <a class="btn btn-light btn-sm" href="{% url 'register' %}">Criar conta</a>
+                {% endif %}
+            </div>
         </div>
     </nav>
 
