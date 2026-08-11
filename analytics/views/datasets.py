@@ -1,14 +1,17 @@
+from pathlib import Path
+
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from django.core.paginator import Paginator
+from django.http import FileResponse, Http404
+from django.shortcuts import redirect, render
 
 from analytics.services.dataset_service import DatasetService
 
 
 @login_required
 def dataset_list(request):
-    datasets = DatasetService.list_for_user(
-        request.user
-    )
+    datasets = DatasetService.list_for_user(request.user)
 
     return render(
         request,
@@ -17,3 +20,62 @@ def dataset_list(request):
             "datasets": datasets,
         },
     )
+
+
+@login_required
+def dataset_detail(request, dataset_id):
+    dataset = DatasetService.get_for_user(dataset_id, request.user)
+    if not dataset:
+        raise Http404("Dataset não encontrado.")
+
+    page_obj = None
+    dataset_columns = [
+        "logradouro",
+        "logradouro_sugerido",
+        "logradouro_canonico",
+        "correcao_manual_aplicada",
+    ]
+
+    if dataset.resultado_processado:
+        try:
+            dataframe = DatasetService.load_processed_dataframe(dataset)
+            dataframe = dataframe[dataset_columns].fillna("")
+            records = dataframe.to_dict("records")
+            paginator = Paginator(records, 50)
+            page_number = request.GET.get("page", 1)
+            page_obj = paginator.get_page(page_number)
+        except Exception:
+            messages.error(request, "Não foi possível carregar o resultado processado deste dataset.")
+
+    return render(
+        request,
+        "analytics/datasets/detail.html",
+        {
+            "dataset": dataset,
+            "page_obj": page_obj,
+            "dataset_columns": dataset_columns,
+        },
+    )
+
+
+@login_required
+def dataset_download(request, dataset_id):
+    dataset = DatasetService.get_for_user(dataset_id, request.user)
+    if not dataset:
+        raise Http404("Dataset não encontrado.")
+
+    if not dataset.resultado_processado:
+        messages.warning(request, "Este dataset ainda não possui resultado processado.")
+        return redirect("dataset_detail", dataset_id=dataset.id)
+
+    try:
+        file_handle = dataset.resultado_processado.open("rb")
+        filename = Path(dataset.resultado_processado.name).name
+        return FileResponse(
+            file_handle,
+            as_attachment=True,
+            filename=filename,
+        )
+    except FileNotFoundError:
+        messages.error(request, "Arquivo de resultado processado não encontrado.")
+        return redirect("dataset_detail", dataset_id=dataset.id)

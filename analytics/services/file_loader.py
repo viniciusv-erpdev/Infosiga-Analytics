@@ -231,9 +231,19 @@ def process_upload(request):
 
     dataframe_processado = run_preprocessing(dataframe_filtrado)
 
+    DatasetService.save_processed_dataframe(
+    dataset=dataset,
+    dataframe=dataframe_processado,
+    )
+
+    dataset = DatasetService.save_processed_dataframe(
+        dataset=dataset,
+        dataframe=dataframe_processado,
+    )
+
     print("[DEBUG] preprocessing concluído")
 
-    request.session["preview_data"] = build_preview_data(dataframe_processado)
+    request.session["last_dataset_id"] = dataset.id
     request.session["uploaded_file_info"] = {
         "nome": file_info["nome"],
         "tamanho_kb": file_info["tamanho_kb"],

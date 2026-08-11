@@ -14,6 +14,8 @@ from analytics.services.preprocessing.address_cluster import cluster_addresses
 from analytics.services.preprocessing.address_dictionary import build_address_dictionary
 from analytics.services.preprocessing.address_matcher import regularize_addresses
 from analytics.services.preprocessing.address_semantic_cleaner import clean_semantic_address
+from analytics.services.preprocessing.apply_manual_corrections import apply_manual_corrections
+from analytics.services.preprocessing.pipeline import run_preprocessing
 
 
 class AuthFlowTests(TestCase):
@@ -130,7 +132,7 @@ class ProcessUploadTests(SimpleTestCase):
         self.assertEqual(dictionary["av independencia"], "avenida independencia")
         self.assertEqual(dictionary["avenida independencia"], "avenida independencia")
 
-    def test_regularize_addresses_adds_canonical_columns(self):
+    def test_regularize_addresses_adds_suggested_columns(self):
         dataframe = pd.DataFrame(
             {
                 "logradouro_normalizado": ["avenida independencia", "av independencia", "rua teste"],
@@ -139,11 +141,76 @@ class ProcessUploadTests(SimpleTestCase):
 
         regularized = regularize_addresses(dataframe)
 
+        self.assertIn("logradouro_sugerido", regularized.columns)
         self.assertIn("logradouro_canonico", regularized.columns)
         self.assertIn("similaridade", regularized.columns)
         self.assertIn("frequencia_grupo", regularized.columns)
-        self.assertEqual(regularized.loc[0, "logradouro_canonico"], "avenida independencia")
-        self.assertEqual(regularized.loc[1, "frequencia_grupo"], 2)
+        self.assertEqual(regularized.loc[0, "logradouro_sugerido"], "avenida independencia")
+        self.assertEqual(regularized.loc[0, "logradouro_canonico"], "")
+        self.assertEqual(regularized.loc[0, "frequencia_grupo"], 1)
+
+    def test_regularize_addresses_preserves_manual_correction_and_suggests_also(self):
+        dataframe = pd.DataFrame(
+            {
+                "logradouro_limpo": ["avenida independencia", "rua teste"],
+                "logradouro_canonico": ["Avenida Independencia", ""],
+                "correcao_manual_aplicada": [True, False],
+            }
+        )
+
+        regularized = regularize_addresses(dataframe)
+
+        self.assertEqual(regularized.loc[0, "logradouro_sugerido"], "avenida independencia")
+        self.assertEqual(regularized.loc[0, "logradouro_canonico"], "Avenida Independencia")
+        self.assertEqual(regularized.loc[0, "confianca_matching"], "MANUAL")
+        self.assertEqual(regularized.loc[1, "logradouro_sugerido"], "rua teste")
+        self.assertEqual(regularized.loc[1, "logradouro_canonico"], "")
+
+    def test_apply_manual_corrections_sets_canonico_and_flag(self):
+        dataframe = pd.DataFrame(
+            {
+                "logradouro_limpo": ["avenida independencia", "rua teste"],
+            }
+        )
+
+        with patch("analytics.services.preprocessing.apply_manual_corrections.get_approved_corrections_by_limpos") as mock_get:
+            mock_get.return_value = {
+                "avenida independencia": type(
+                    "Correction",
+                    (),
+                    {"logradouro_canonico": "Avenida Independencia"},
+                )()
+            }
+            corrected = apply_manual_corrections(dataframe)
+
+        self.assertTrue(corrected.loc[0, "correcao_manual_aplicada"])
+        self.assertEqual(corrected.loc[0, "logradouro_canonico"], "Avenida Independencia")
+        self.assertFalse(corrected.loc[1, "correcao_manual_aplicada"])
+        self.assertEqual(corrected.loc[1, "logradouro_canonico"], "")
+
+    def test_pipeline_preserves_manual_correction_over_suggestion(self):
+        dataframe = pd.DataFrame(
+            {
+                "logradouro": ["AVENIDA PRESIDENTE VARGAS", "RUA TESTE"],
+            }
+        )
+
+        with patch("analytics.services.preprocessing.apply_manual_corrections.get_approved_corrections_by_limpos") as mock_get:
+            mock_get.return_value = {
+                "avenida presidente vargas": type(
+                    "Correction",
+                    (),
+                    {"logradouro_canonico": "Avenida Presidente Vargas"},
+                )()
+            }
+
+            processed = run_preprocessing(dataframe)
+
+        self.assertEqual(processed.loc[0, "logradouro_sugerido"], "avenida presidente vargas")
+        self.assertEqual(processed.loc[0, "logradouro_canonico"], "Avenida Presidente Vargas")
+        self.assertTrue(processed.loc[0, "correcao_manual_aplicada"])
+        self.assertEqual(processed.loc[1, "logradouro_canonico"], "")
+        self.assertEqual(processed.loc[1, "logradouro_sugerido"], "rua teste")
 
     def test_build_preview_data_includes_regularization_columns(self):
         dataframe = pd.DataFrame(

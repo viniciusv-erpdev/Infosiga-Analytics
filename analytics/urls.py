@@ -3,7 +3,7 @@ from django.urls import path
 from analytics.views.auth import CustomLoginView, CustomLogoutView, register
 from analytics.views.home import home, upload_file
 from analytics.views.review import review_list, review_submit
-from analytics.views.datasets import dataset_list
+from analytics.views.datasets import dataset_list, dataset_detail, dataset_download
 
 urlpatterns = [
     path("", home, name="home"),
@@ -14,4 +14,6 @@ urlpatterns = [
     path("review/", review_list, name="review_list"),
     path("review/save/", review_submit, name="review_save"),
     path("datasets/", dataset_list, name="dataset_list"),
+    path("datasets/<int:dataset_id>/", dataset_detail, name="dataset_detail"),
+    path("datasets/<int:dataset_id>/download/", dataset_download, name="dataset_download"),
 ]

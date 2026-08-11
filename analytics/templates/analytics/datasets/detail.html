@@ -1,0 +1,140 @@
+{% extends "analytics/base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start mb-4 gap-3 flex-column flex-md-row">
+        <div>
+            <h2 class="mb-1">Detalhes do dataset</h2>
+            <p class="text-muted mb-0">Visualize os registros processados e baixe o arquivo final.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'dataset_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar para lista
+            </a>
+            {% if dataset.resultado_processado %}
+                <a href="{% url 'dataset_download' dataset.id %}" class="btn btn-primary">
+                    <i class="bi bi-download"></i> Baixar arquivo processado
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">Resumo</h5>
+
+                    <div class="mb-3">
+                        <strong>Arquivo original</strong>
+                        <div>{{ dataset.nome_original }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Registros</strong>
+                        <div>{{ dataset.quantidade_registros }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Criado em</strong>
+                        <div>{{ dataset.criado_em|date:"d/m/Y H:i" }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Processado</strong>
+                        <div>
+                            {% if dataset.resultado_processado %}
+                                <span class="badge bg-success">Sim</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Não</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if dataset.resultado_processado %}
+                    <div>
+                        <strong>Arquivo processado</strong>
+                        <div>{{ dataset.resultado_processado.name|slice:":50" }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">Registros processados</h5>
+
+                    {% if dataset.resultado_processado and page_obj %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Logradouro</th>
+                                        <th>Logradouro sugerido</th>
+                                        <th>Logradouro canônico</th>
+                                        <th>Correção manual aplicada</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in page_obj.object_list %}
+                                        <tr>
+                                            <td>{{ row.logradouro }}</td>
+                                            <td>{{ row.logradouro_sugerido }}</td>
+                                            <td>{{ row.logradouro_canonico }}</td>
+                                            <td>{{ row.correcao_manual_aplicada }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {% if page_obj.has_other_pages %}
+                        <nav class="mt-4" aria-label="Paginação de registros">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if num == page_obj.number %}
+                                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                                    {% elif num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+                                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                    {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                    {% elif num == page_obj.number|add:-3 or num == page_obj.number|add:3 %}
+                                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Próximo</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">Próximo</span></li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    {% elif dataset.resultado_processado %}
+                        <div class="alert alert-warning mb-0">
+                            Não foi possível carregar os registros processados deste dataset.
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            Este dataset ainda não possui um arquivo processado.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

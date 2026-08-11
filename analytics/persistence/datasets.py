@@ -82,3 +82,73 @@ def get_dataset_for_user(dataset_id, usuario):
         )
         .first()
     )
+
+def save_processed_dataframe(
+    dataset: Dataset,
+    dataframe: pd.DataFrame,
+) -> Dataset:
+    """
+    Salva o DataFrame processado em Parquet e associa
+    o arquivo resultante ao Dataset.
+    """
+    if dataset is None:
+        raise ValueError("dataset não pode ser None")
+
+    if dataframe is None:
+        raise ValueError("dataframe não pode ser None")
+
+    nome_original = Path(dataset.nome_original).stem
+    nome_arquivo = f"{nome_original}_processado.parquet"
+
+    caminho = (
+        Path(dataset.arquivo.storage.location)
+        / "datasets"
+        / "processed"
+        / nome_arquivo
+    )
+
+    save_dataframe_as_parquet(
+        dataframe=dataframe,
+        path=caminho,
+    )
+
+    caminho_relativo = (
+        Path("datasets")
+        / "processed"
+        / nome_arquivo
+    ).as_posix()
+
+    dataset.resultado_processado.name = caminho_relativo
+
+    dataset.save(
+        update_fields=[
+            "resultado_processado",
+            "atualizado_em",
+        ]
+    )
+
+    return dataset
+
+def load_processed_dataframe(dataset: Dataset) -> pd.DataFrame:
+    """
+    Carrega o DataFrame processado associado a um Dataset.
+    """
+
+    if dataset is None:
+        raise ValueError("dataset não pode ser None")
+
+    if not dataset.resultado_processado:
+        raise ValueError(
+            "O dataset ainda não possui resultado processado."
+        )
+
+    return load_dataframe_from_parquet(
+        dataset.resultado_processado.path
+    )
+
+def list_datasets_for_user(usuario):
+    return (
+        Dataset.objects
+        .filter(usuario=usuario)
+        .order_by("-criado_em")
+    )

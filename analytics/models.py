@@ -120,5 +120,11 @@ class Dataset(models.Model):
         auto_now=True
     )
 
+    resultado_processado = models.FileField(
+        upload_to="datasets/processed/",
+        null=True,
+        blank=True,
+    )
+
     def __str__(self):
         return self.nome_original

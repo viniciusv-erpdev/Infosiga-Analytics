@@ -29,6 +29,7 @@
             </a>
             <div class="d-flex align-items-center gap-2">
                 {% if user.is_authenticated %}
+                    <a class="btn btn-outline-light btn-sm" href="{% url 'dataset_list' %}">Meus datasets</a>
                     <span class="navbar-text text-light me-2">Usuário: {{ user.username }}</span>
                     <a class="btn btn-outline-light btn-sm" href="{% url 'logout' %}">Sair</a>
                 {% else %}

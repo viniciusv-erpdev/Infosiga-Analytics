@@ -17,14 +17,25 @@ class DatasetService:
         )
 
     @staticmethod
-    def list_for_user(usuario):
-        return dataset_persistence.list_datasets_for_user(
-            usuario
+    def save_processed_dataframe(
+        dataset,
+        dataframe,
+    ):
+        return dataset_persistence.save_processed_dataframe(
+            dataset=dataset,
+            dataframe=dataframe,
         )
 
     @staticmethod
-    def get_for_user(dataset_id, usuario):
-        return dataset_persistence.get_dataset_for_user(
-            dataset_id=dataset_id,
-            usuario=usuario,
+    def load_processed_dataframe(dataset):
+        return dataset_persistence.load_processed_dataframe(
+            dataset=dataset
         )
+
+    @staticmethod
+    def list_for_user(usuario):
+        return dataset_persistence.list_datasets_for_user(usuario)
+
+    @staticmethod
+    def get_for_user(dataset_id, usuario):
+        return dataset_persistence.get_dataset_for_user(dataset_id, usuario)
