@@ -39,3 +39,43 @@ class DatasetService:
     @staticmethod
     def get_for_user(dataset_id, usuario):
         return dataset_persistence.get_dataset_for_user(dataset_id, usuario)
+
+    @staticmethod
+    def prepare_dataframe_for_export(dataset):
+        dataframe = DatasetService.load_processed_dataframe(dataset)
+
+        columns_to_remove = [
+            "logradouro_normalizado",
+            "logradouro_limpo",
+        ]
+
+        dataframe = dataframe.drop(
+            columns=columns_to_remove,
+            errors="ignore",
+        )
+
+        priority_columns = [
+            "logradouro",
+            "logradouro_sugerido",
+            "logradouro_canonico",
+            "correcao_manual_aplicada",
+            "similaridade",
+            "confianca_matching",
+            "frequencia_grupo",
+        ]
+
+        existing_priority_columns = [
+            column
+            for column in priority_columns
+            if column in dataframe.columns
+        ]
+
+        remaining_columns = [
+            column
+            for column in dataframe.columns
+            if column not in existing_priority_columns
+        ]
+
+        return dataframe[
+            existing_priority_columns + remaining_columns
+        ]

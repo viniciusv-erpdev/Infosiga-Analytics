@@ -83,7 +83,12 @@
                                             <td>{{ row.logradouro }}</td>
                                             <td>{{ row.logradouro_sugerido }}</td>
                                             <td>{{ row.logradouro_canonico }}</td>
-                                            <td>{{ row.correcao_manual_aplicada }}</td>
+                                            <td>{% if row.correcao_manual_aplicada %}
+                                                Sim
+                                                {% else %}
+                                                Não
+                                                {% endif %}
+                                            </td>
                                         </tr>
                                     {% endfor %}
                                 </tbody>

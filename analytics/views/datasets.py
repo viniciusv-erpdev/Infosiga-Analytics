@@ -7,7 +7,10 @@ from django.http import FileResponse, Http404
 from django.shortcuts import redirect, render
 
 from analytics.services.dataset_service import DatasetService
+from io import BytesIO
 
+import os
+import tempfile
 
 @login_required
 def dataset_list(request):
@@ -61,21 +64,67 @@ def dataset_detail(request, dataset_id):
 @login_required
 def dataset_download(request, dataset_id):
     dataset = DatasetService.get_for_user(dataset_id, request.user)
+
     if not dataset:
         raise Http404("Dataset não encontrado.")
 
     if not dataset.resultado_processado:
-        messages.warning(request, "Este dataset ainda não possui resultado processado.")
-        return redirect("dataset_detail", dataset_id=dataset.id)
+        messages.warning(
+            request,
+            "Este dataset ainda não possui resultado processado."
+        )
+        return redirect(
+            "dataset_detail",
+            dataset_id=dataset.id,
+        )
 
     try:
-        file_handle = dataset.resultado_processado.open("rb")
-        filename = Path(dataset.resultado_processado.name).name
-        return FileResponse(
+        dataframe = DatasetService.prepare_dataframe_for_export(
+            dataset
+        )
+
+        temporary_file = tempfile.NamedTemporaryFile(
+            suffix=".xlsx",
+            delete=False,
+        )
+
+        temporary_path = temporary_file.name
+        temporary_file.close()
+
+        dataframe.to_excel(
+            temporary_path,
+            index=False,
+        )
+
+        filename = (
+            f"{Path(dataset.nome_original).stem}_processado.xlsx"
+        )
+
+        file_handle = open(
+            temporary_path,
+            "rb",
+        )
+
+        response = FileResponse(
             file_handle,
             as_attachment=True,
             filename=filename,
         )
+
+        response["Content-Type"] = (
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        )
+
+        return response
+
     except FileNotFoundError:
-        messages.error(request, "Arquivo de resultado processado não encontrado.")
-        return redirect("dataset_detail", dataset_id=dataset.id)
+        messages.error(
+            request,
+            "Arquivo de resultado processado não encontrado."
+        )
+
+        return redirect(
+            "dataset_detail",
+            dataset_id=dataset.id,
+        )
