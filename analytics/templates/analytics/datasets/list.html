@@ -20,88 +20,103 @@
 
     {% if datasets %}
 
-        <div class="row g-4">
+    <div class="row g-4">
 
-            {% for dataset in datasets %}
+        {% for dataset in datasets %}
 
-                <div class="col-md-6 col-lg-4">
+        <div class="col-md-6 col-lg-4">
 
-                    <div class="card shadow-sm border-0 h-100">
+            <div class="card shadow-sm border-0 h-100">
 
-                        <div class="card-body d-flex flex-column">
+                <div class="card-body d-flex flex-column">
 
-                            <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div class="d-flex align-items-start justify-content-between mb-3">
 
-                                <div class="text-primary fs-3">
-                                    <i class="bi bi-file-earmark-bar-graph"></i>
-                                </div>
-
-                            </div>
-
-                            <h5 class="card-title text-break">
-                                {{ dataset.nome_original }}
-                            </h5>
-
-                            <div class="text-muted small mt-3 mb-4">
-
-                                <div class="mb-2">
-                                    <strong>Registros:</strong>
-                                    {{ dataset.quantidade_registros }}
-                                </div>
-
-                                <div class="mb-2">
-                                    <strong>Enviado em:</strong>
-                                    {{ dataset.criado_em|date:"d/m/Y H:i" }}
-                                </div>
-
-                                <div>
-                                    <strong>Processado:</strong>
-                                    {% if dataset.resultado_processado %}
-                                        <span class="badge bg-success">Sim</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Não</span>
-                                    {% endif %}
-                                </div>
-
-                            </div>
-
-                            <div class="mt-auto">
-                                <a href="{% url 'dataset_detail' dataset.id %}" class="btn btn-primary w-100">
-                                    <i class="bi bi-eye"></i> Visualizar
-                                </a>
-                            </div>
-
+                        <div class="text-primary fs-3">
+                            <i class="bi bi-file-earmark-bar-graph"></i>
                         </div>
+
+                    </div>
+
+                    <h5 class="card-title text-break">
+                        {{ dataset.nome_original }}
+                    </h5>
+
+                    <div class="text-muted small mt-3 mb-4">
+
+                        <div class="mb-2">
+                            <strong>Registros:</strong>
+                            {{ dataset.quantidade_registros }}
+                        </div>
+
+                        <div class="mb-2">
+                            <strong>Enviado em:</strong>
+                            {{ dataset.criado_em|date:"d/m/Y H:i" }}
+                        </div>
+
+                        <div>
+                            <strong>Processado:</strong>
+                            {% if dataset.resultado_processado %}
+                            <span class="badge bg-success">Sim</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Não</span>
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+                    <div class="mt-auto d-flex gap-2">
+
+                        <a href="{% url 'dataset_detail' dataset.id %}" class="btn btn-primary flex-fill">
+                            <i class="bi bi-eye"></i>
+                            Visualizar
+                        </a>
+
+                        <form method="post" action="{% url 'dataset_delete' dataset.id %}" class="flex-fill" onsubmit="return confirm(
+            'Tem certeza que deseja excluir este dataset?'
+        );">
+                            {% csrf_token %}
+
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-trash"></i>
+                                Excluir
+                            </button>
+
+                        </form>
 
                     </div>
 
                 </div>
 
-            {% endfor %}
+            </div>
 
         </div>
+
+        {% endfor %}
+
+    </div>
 
     {% else %}
 
-        <div class="card shadow-sm border-0">
-            <div class="card-body text-center py-5">
+    <div class="card shadow-sm border-0">
+        <div class="card-body text-center py-5">
 
-                <i class="bi bi-folder2-open display-4 text-muted"></i>
+            <i class="bi bi-folder2-open display-4 text-muted"></i>
 
-                <h4 class="mt-3">
-                    Nenhum dataset encontrado
-                </h4>
+            <h4 class="mt-3">
+                Nenhum dataset encontrado
+            </h4>
 
-                <p class="text-muted">
-                    Faça o upload de uma planilha para começar.
-                </p>
+            <p class="text-muted">
+                Faça o upload de uma planilha para começar.
+            </p>
 
-                <a href="{% url 'home' %}" class="btn btn-primary">
-                    Fazer upload
-                </a>
+            <a href="{% url 'home' %}" class="btn btn-primary">
+                Fazer upload
+            </a>
 
-            </div>
         </div>
+    </div>
 
     {% endif %}
 

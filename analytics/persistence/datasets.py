@@ -152,3 +152,43 @@ def list_datasets_for_user(usuario):
         .filter(usuario=usuario)
         .order_by("-criado_em")
     )
+
+def delete_dataset(dataset: Dataset) -> None:
+
+    if dataset is None:
+        raise ValueError("dataset não pode ser None")
+
+    if dataset.arquivo:
+        dataset.arquivo.delete(save=False)
+
+    if dataset.resultado_processado:
+        dataset.resultado_processado.delete(save=False)
+
+    dataset.delete()
+
+#Função de manutenção para remover datasets órfãos (sem arquivo associado)
+def cleanup_orphaned_datasets():
+
+    removed = 0
+
+    for dataset in Dataset.objects.all():
+
+        arquivo_existe = (
+            not dataset.arquivo
+            or dataset.arquivo.storage.exists(
+                dataset.arquivo.name
+            )
+        )
+
+        resultado_existe = (
+            not dataset.resultado_processado
+            or dataset.resultado_processado.storage.exists(
+                dataset.resultado_processado.name
+            )
+        )
+
+        if not arquivo_existe or not resultado_existe:
+            dataset.delete()
+            removed += 1
+
+    return removed

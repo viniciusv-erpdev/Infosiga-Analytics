@@ -128,3 +128,26 @@ def dataset_download(request, dataset_id):
             "dataset_detail",
             dataset_id=dataset.id,
         )
+
+@login_required
+def dataset_delete(request, dataset_id):
+
+    if request.method != "POST":
+        raise Http404("Método não permitido.")
+
+    dataset = DatasetService.get_for_user(
+        dataset_id,
+        request.user,
+    )
+
+    if not dataset:
+        raise Http404("Dataset não encontrado.")
+
+    DatasetService.delete(dataset)
+
+    messages.success(
+        request,
+        "Dataset excluído com sucesso."
+    )
+
+    return redirect("dataset_list")

@@ -79,3 +79,7 @@ class DatasetService:
         return dataframe[
             existing_priority_columns + remaining_columns
         ]
+
+    @staticmethod
+    def delete(dataset):
+        dataset_persistence.delete_dataset(dataset)
