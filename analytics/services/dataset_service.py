@@ -1,5 +1,7 @@
 from analytics.persistence import datasets as dataset_persistence
-
+from django.db import transaction
+from analytics.models import DatasetRecordAudit
+from analytics.persistence.datasets import update_dataframe_record
 
 class DatasetService:
 
@@ -83,3 +85,19 @@ class DatasetService:
     @staticmethod
     def delete(dataset):
         dataset_persistence.delete_dataset(dataset)
+
+    @staticmethod
+    def update_record(
+        dataset,
+        id_registro,
+        updates,
+        usuario,
+        note="",
+    ):
+        return dataset_persistence.update_dataframe_record(
+            dataset=dataset,
+            id_registro=id_registro,
+            updates=updates,
+            usuario=usuario,
+            note=note,
+        )

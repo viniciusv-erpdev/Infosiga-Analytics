@@ -220,26 +220,15 @@ def process_upload(request):
         quantidade_registros=len(dataframe),
     )
 
-    dataframe_filtrado = apply_filters(
-        dataframe,
-        tipo_via=tipo_via,
-        tipo_sinistro=tipo_sinistro
-    )
-
     print(f"[DEBUG] Dataset criado: {dataset.id}")
     print(f"[DEBUG] arquivo salvo: {dataset.arquivo.name}")
 
     dataframe_processado = run_preprocessing(dataframe_filtrado)
 
-    DatasetService.save_processed_dataframe(
+    dataset = DatasetService.save_processed_dataframe(
     dataset=dataset,
     dataframe=dataframe_processado,
-    )
-
-    dataset = DatasetService.save_processed_dataframe(
-        dataset=dataset,
-        dataframe=dataframe_processado,
-    )
+)
 
     print("[DEBUG] preprocessing concluído")
 

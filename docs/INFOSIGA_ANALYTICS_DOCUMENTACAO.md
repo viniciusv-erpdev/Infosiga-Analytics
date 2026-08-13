@@ -771,3 +771,11 @@ exijam infraestrutura complexa.
 
 O armazenamento em Parquet e o uso do SQLite no desenvolvimento são compatíveis
 com essa filosofia para o escopo atual.
+
+## 23. Correções futuras
+
+1. Alterar a geração dos arquivos Parquet para utilizar caminhos exclusivos por Dataset, evitando colisões quando diferentes uploads possuem o mesmo nome original.
+
+2. Tornar o caminho do Parquet único por Dataset, preferencialmente incorporando o dataset.id ao nome ou utilizando um diretório próprio para cada Dataset.
+
+3. Conectar a edição manual à interface de detalhes do dataset somente após estabilizar e testar completamente a camada de persistência.

@@ -153,6 +153,155 @@ def list_datasets_for_user(usuario):
         .order_by("-criado_em")
     )
 
+def update_dataframe_record(
+    dataset: Dataset,
+    id_registro,
+    updates: dict,
+    usuario,
+    note: str = "",
+) -> Dataset:
+    """
+    Atualiza campos editáveis de um registro no Parquet e registra
+    cada alteração no histórico de auditoria.
+
+    O campo `logradouro` original não pode ser alterado.
+    """
+
+    if dataset is None:
+        raise ValueError("dataset é obrigatório")
+
+    if usuario is None:
+        raise ValueError("usuario é obrigatório")
+
+    if not updates:
+        raise ValueError("Nenhuma alteração foi informada")
+
+    if not dataset.resultado_processado:
+        raise ValueError(
+            "O dataset ainda não possui resultado processado."
+        )
+
+    dataframe = load_processed_dataframe(dataset)
+
+    if "id_registro" not in dataframe.columns:
+        raise ValueError(
+            "O dataset não possui a coluna id_registro."
+        )
+
+    id_registro = str(id_registro)
+
+    mask = (
+        dataframe["id_registro"].astype(str) == id_registro
+    )
+
+    if not mask.any():
+        raise ValueError(
+            f"Registro não encontrado: {id_registro}"
+        )
+
+    editable_field_types = {
+        "numero_logradouro": "numeric",
+        "logradouro_canonico": "text",
+    }
+
+    invalid_fields = (
+    set(updates.keys()) - set(editable_field_types.keys())
+    )
+
+    if invalid_fields:
+        raise ValueError(
+            f"Campos não editáveis: {', '.join(invalid_fields)}"
+        )
+
+    row_index = dataframe.index[mask][0]
+
+    from analytics.models import DatasetRecordAudit
+
+    changes = []
+
+    for field_name, new_value in updates.items():
+
+        if field_name not in dataframe.columns:
+            raise ValueError(
+                f"Campo inexistente no dataset: {field_name}"
+            )
+
+        field_type = editable_field_types[field_name]
+
+        if field_type == "numeric":
+            try:
+                if new_value in (None, ""):
+                    converted_value = None
+                else:
+                    converted_value = float(new_value)
+            except (TypeError, ValueError):
+                raise ValueError(
+                    f"O campo {field_name} deve conter um valor numérico."
+                )
+        else:
+            converted_value = (
+                ""
+                if new_value is None
+                else str(new_value).strip()
+            )    
+
+        previous_value = dataframe.at[
+            row_index,
+            field_name,
+        ]
+
+        previous_str = (
+            ""
+            if pd.isna(previous_value)
+            else str(previous_value)
+        )
+
+        new_str = (
+            ""
+            if converted_value is None
+            else str(converted_value)
+        )
+
+        # Não registra auditoria quando não houve mudança real.
+        if previous_str == new_str:
+            continue
+
+        changes.append(
+            {
+                "field_name": field_name,
+                "previous_value": previous_str,
+                "new_value": new_str,
+            }
+        )
+
+        dataframe.at[
+            row_index,
+            field_name,
+        ] = converted_value
+
+    if not changes:
+        return dataset
+
+    # Salva o Parquet atualizado.
+    save_processed_dataframe(
+        dataset=dataset,
+        dataframe=dataframe,
+    )
+
+    # Registra cada alteração realizada.
+    for change in changes:
+        DatasetRecordAudit.objects.create(
+            dataset=dataset,
+            id_registro=id_registro,
+            field_name=change["field_name"],
+            previous_value=change["previous_value"],
+            new_value=change["new_value"],
+            usuario=usuario,
+            note=note,
+        )
+
+    return dataset
+
 def delete_dataset(dataset: Dataset) -> None:
 
     if dataset is None:
@@ -192,3 +341,4 @@ def cleanup_orphaned_datasets():
             removed += 1
 
     return removed
+

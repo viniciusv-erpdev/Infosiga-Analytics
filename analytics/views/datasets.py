@@ -6,11 +6,15 @@ from django.core.paginator import Paginator
 from django.http import FileResponse, Http404
 from django.shortcuts import redirect, render
 
-from analytics.services.dataset_service import DatasetService
-from io import BytesIO
+from analytics.models import DatasetRecordAudit
 
-import os
+from analytics.services.dataset_service import DatasetService
 import tempfile
+
+import json
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 @login_required
 def dataset_list(request):
@@ -27,13 +31,22 @@ def dataset_list(request):
 
 @login_required
 def dataset_detail(request, dataset_id):
-    dataset = DatasetService.get_for_user(dataset_id, request.user)
+    dataset = DatasetService.get_for_user(
+        dataset_id,
+        request.user,
+    )
+
     if not dataset:
         raise Http404("Dataset não encontrado.")
 
     page_obj = None
+    audits_by_record = {}
+    records_json = []
+
     dataset_columns = [
+        "id_registro",
         "logradouro",
+        "numero_logradouro",
         "logradouro_sugerido",
         "logradouro_canonico",
         "correcao_manual_aplicada",
@@ -41,14 +54,129 @@ def dataset_detail(request, dataset_id):
 
     if dataset.resultado_processado:
         try:
-            dataframe = DatasetService.load_processed_dataframe(dataset)
-            dataframe = dataframe[dataset_columns].fillna("")
+            dataframe = DatasetService.load_processed_dataframe(
+                dataset
+            )
+
+            dataframe = dataframe[
+                dataset_columns
+            ].fillna("")
+
             records = dataframe.to_dict("records")
-            paginator = Paginator(records, 50)
-            page_number = request.GET.get("page", 1)
-            page_obj = paginator.get_page(page_number)
+
+            paginator = Paginator(
+                records,
+                50,
+            )
+
+            page_number = request.GET.get(
+                "page",
+                1,
+            )
+
+            page_obj = paginator.get_page(
+                page_number
+            )
+
+            # IDs dos registros atualmente exibidos
+            ids_registros = [
+                str(record["id_registro"])
+                for record in page_obj.object_list
+            ]
+
+            # Busca as auditorias desses registros
+            audits = (
+                DatasetRecordAudit.objects
+                .filter(
+                    dataset=dataset,
+                    id_registro__in=ids_registros,
+                )
+                .select_related("usuario")
+                .order_by("-created_at")
+            )
+
+            # Organiza auditorias por registro
+            for audit in audits:
+                key = str(
+                    audit.id_registro
+                )
+
+                audits_by_record.setdefault(
+                    key,
+                    []
+                ).append({
+                    "id": audit.id,
+                    "field_name": audit.field_name,
+                    "previous_value": audit.previous_value,
+                    "new_value": audit.new_value,
+                    "usuario": str(audit.usuario),
+                    "note": audit.note or "",
+                    "created_at": audit.created_at.strftime(
+                        "%d/%m/%Y %H:%M"
+                    ),
+                })
+
+            # Vincula as auditorias aos registros da página
+            for record in page_obj.object_list:
+
+                record["audits"] = (
+                    audits_by_record.get(
+                        str(record["id_registro"]),
+                        []
+                    )
+                )
+
+                records_json.append({
+                    "id_registro": str(
+                        record["id_registro"]
+                    ),
+
+                    "logradouro": str(
+                        record.get(
+                            "logradouro",
+                            ""
+                        )
+                    ),
+
+                    "numero_logradouro": (
+                        None
+                        if record.get(
+                            "numero_logradouro"
+                        ) == ""
+                        else record.get(
+                            "numero_logradouro"
+                        )
+                    ),
+
+                    "logradouro_sugerido": str(
+                        record.get(
+                            "logradouro_sugerido",
+                            ""
+                        )
+                    ),
+
+                    "logradouro_canonico": str(
+                        record.get(
+                            "logradouro_canonico",
+                            ""
+                        )
+                    ),
+
+                    "correcao_manual_aplicada": bool(
+                        record.get(
+                            "correcao_manual_aplicada",
+                            False
+                        )
+                    ),
+
+                    "audits": record["audits"],
+                })
+
         except Exception:
-            messages.error(request, "Não foi possível carregar o resultado processado deste dataset.")
+            messages.error(
+                request,
+                "Não foi possível carregar o resultado processado deste dataset."
+            )
 
     return render(
         request,
@@ -57,6 +185,8 @@ def dataset_detail(request, dataset_id):
             "dataset": dataset,
             "page_obj": page_obj,
             "dataset_columns": dataset_columns,
+            "audits_by_record": audits_by_record,
+            "records_json": records_json,
         },
     )
 
@@ -151,3 +281,82 @@ def dataset_delete(request, dataset_id):
     )
 
     return redirect("dataset_list")
+
+@login_required
+@require_POST
+def dataset_update_record(request, dataset_id):
+
+    dataset = DatasetService.get_for_user(
+        dataset_id,
+        request.user,
+    )
+
+    if not dataset:
+        raise Http404("Dataset não encontrado.")
+
+    try:
+        payload = json.loads(
+            request.body.decode("utf-8")
+        )
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Dados inválidos.",
+            },
+            status=400,
+        )
+
+    id_registro = payload.get("id_registro")
+    updates = payload.get("updates", {})
+    note = payload.get("note", "")
+
+    if not id_registro:
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "id_registro é obrigatório.",
+            },
+            status=400,
+        )
+
+    if not isinstance(updates, dict) or not updates:
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Nenhuma alteração informada.",
+            },
+            status=400,
+        )
+
+    try:
+        DatasetService.update_record(
+            dataset=dataset,
+            id_registro=id_registro,
+            updates=updates,
+            usuario=request.user,
+            note=note,
+        )
+
+        return JsonResponse({
+            "success": True,
+            "message": "Registro atualizado com sucesso.",
+        })
+
+    except ValueError as exc:
+        return JsonResponse(
+            {
+                "success": False,
+                "error": str(exc),
+            },
+            status=400,
+        )
+
+    except Exception as exc:
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Não foi possível atualizar o registro.",
+            },
+            status=500,
+        )

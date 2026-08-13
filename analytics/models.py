@@ -128,3 +128,52 @@ class Dataset(models.Model):
 
     def __str__(self):
         return self.nome_original
+
+class DatasetRecordAudit(models.Model):
+    dataset = models.ForeignKey(
+        "analytics.Dataset",
+        on_delete=models.CASCADE,
+        related_name="record_audits",
+    )
+
+    id_registro = models.UUIDField()
+
+    field_name = models.CharField(
+        max_length=100
+    )
+
+    previous_value = models.TextField(
+        null=True,
+        blank=True,
+    )
+
+    new_value = models.TextField(
+        null=True,
+        blank=True,
+    )
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="dataset_record_audits",
+    )
+
+    note = models.TextField(
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return (
+            f"{self.dataset_id} - "
+            f"{self.id_registro} - "
+            f"{self.field_name}"
+        )
