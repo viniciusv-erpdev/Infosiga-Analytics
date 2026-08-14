@@ -46,6 +46,7 @@ def dataset_detail(request, dataset_id):
     dataset_columns = [
         "id_registro",
         "logradouro",
+        "logradouro_limpo",
         "numero_logradouro",
         "logradouro_sugerido",
         "logradouro_canonico",

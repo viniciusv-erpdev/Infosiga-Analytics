@@ -1,7 +1,5 @@
 from analytics.persistence import datasets as dataset_persistence
-from django.db import transaction
 from analytics.models import DatasetRecordAudit
-from analytics.persistence.datasets import update_dataframe_record
 
 class DatasetService:
 
@@ -77,6 +75,16 @@ class DatasetService:
             for column in dataframe.columns
             if column not in existing_priority_columns
         ]
+
+        if "correcao_manual_aplicada" in dataframe.columns:
+            dataframe["correcao_manual_aplicada"] = (
+                dataframe["correcao_manual_aplicada"]
+                .map({
+                    True: "Sim",
+                    False: "Não",
+                })
+                .fillna("")
+            )    
 
         return dataframe[
             existing_priority_columns + remaining_columns

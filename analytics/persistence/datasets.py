@@ -1,6 +1,7 @@
 from pathlib import Path
 import pandas as pd
 from analytics.models import Dataset
+from analytics.models import DatasetRecordAudit
 
 def save_dataframe_as_parquet(dataframe: pd.DataFrame, path: str | Path) -> Path:
     """
@@ -214,8 +215,6 @@ def update_dataframe_record(
         )
 
     row_index = dataframe.index[mask][0]
-
-    from analytics.models import DatasetRecordAudit
 
     changes = []
 

@@ -18,5 +18,4 @@ urlpatterns = [
     path("datasets/<int:dataset_id>/download/", dataset_download, name="dataset_download"),
     path("datasets/<int:dataset_id>/excluir/",dataset_delete,name="dataset_delete",),
     path("datasets/<int:dataset_id>/editar/", dataset_update_record,name="dataset_update_record",),
-    path("datasets/<int:dataset_id>/editar/",dataset_update_record,name="dataset_update_record",),
     ]
