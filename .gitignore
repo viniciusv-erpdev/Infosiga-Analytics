@@ -23,3 +23,7 @@ uploads/
 *.csv
 
 *.xlsx
+
+/processed/*
+
+*.parquet
