@@ -53,6 +53,9 @@ def dataset_detail(request, dataset_id):
         "correcao_manual_aplicada",
     ]
 
+    # Colunas que devem estar disponíveis internamente mas não serem exibidas na tabela
+    internal_only_columns = ["logradouro_limpo"]
+
     if dataset.resultado_processado:
         try:
             dataframe = DatasetService.load_processed_dataframe(
@@ -135,6 +138,13 @@ def dataset_detail(request, dataset_id):
                     "logradouro": str(
                         record.get(
                             "logradouro",
+                            ""
+                        )
+                    ),
+
+                    "logradouro_limpo": str(
+                        record.get(
+                            "logradouro_limpo",
                             ""
                         )
                     ),

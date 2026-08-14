@@ -1,4 +1,5 @@
 {% extends "analytics/base.html" %}
+{% load static %}
 
 {% block content %}
 <div class="container py-4">
@@ -339,5 +340,7 @@
 </div>
 
 {{ page_obj.object_list|json_script:"dataset-records-data" }}
+
+<script src="{% static 'analytics/js/dataset.js' %}"></script>
 
 {% endblock %}
