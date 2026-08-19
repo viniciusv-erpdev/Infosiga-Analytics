@@ -293,6 +293,133 @@ def update_dataframe_record(
 
     return dataset
 
+def update_dataframe_records_by_limpo(
+    dataset: Dataset,
+    logradouro_limpo: str,
+    logradouro_canonico: str,
+    usuario,
+    note: str = "",
+) -> Dataset:
+    """
+    Atualiza o logradouro_canonico de todos os registros do dataset
+    que possuem o mesmo logradouro_limpo.
+
+    Registra DatasetRecordAudit somente para registros cujo valor
+    realmente foi alterado.
+
+    Não altera logradouro_original nem logradouro_limpo.
+    """
+
+    if dataset is None:
+        raise ValueError("dataset é obrigatório")
+
+    if usuario is None:
+        raise ValueError("usuario é obrigatório")
+
+    if not logradouro_limpo:
+        raise ValueError("logradouro_limpo é obrigatório")
+
+    if not logradouro_canonico:
+        raise ValueError("logradouro_canonico é obrigatório")
+
+    if not dataset.resultado_processado:
+        raise ValueError(
+            "O dataset ainda não possui resultado processado."
+        )
+
+    dataframe = load_processed_dataframe(dataset)
+
+    required_columns = {
+        "id_registro",
+        "logradouro_limpo",
+        "logradouro_canonico",
+    }
+
+    missing_columns = required_columns - set(dataframe.columns)
+
+    if missing_columns:
+        raise ValueError(
+            "O dataset não possui as colunas necessárias: "
+            + ", ".join(sorted(missing_columns))
+        )
+
+    logradouro_limpo = str(logradouro_limpo).strip()
+    logradouro_canonico = str(logradouro_canonico).strip()
+
+    mask = (
+        dataframe["logradouro_limpo"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        == logradouro_limpo
+    )
+
+    if not mask.any():
+        return dataset
+
+    changes = []
+
+    matching_indexes = dataframe.index[mask]
+
+    for row_index in matching_indexes:
+        previous_value = dataframe.at[
+            row_index,
+            "logradouro_canonico",
+        ]
+
+        previous_str = (
+            ""
+            if pd.isna(previous_value)
+            else str(previous_value).strip()
+        )
+
+        if previous_str == logradouro_canonico:
+            continue
+
+        id_registro_atual = str(
+            dataframe.at[row_index, "id_registro"]
+        )
+
+        changes.append(
+            {
+                "id_registro": id_registro_atual,
+                "previous_value": previous_str,
+                "new_value": logradouro_canonico,
+            }
+        )
+
+        dataframe.at[
+            row_index,
+            "logradouro_canonico",
+        ] = logradouro_canonico
+
+        if "correcao_manual_aplicada" in dataframe.columns:
+            dataframe.at[
+                row_index,
+                "correcao_manual_aplicada",
+            ] = True
+
+    if not changes:
+        return dataset
+
+    save_processed_dataframe(
+        dataset=dataset,
+        dataframe=dataframe,
+    )
+
+    for change in changes:
+        DatasetRecordAudit.objects.create(
+            dataset=dataset,
+            id_registro=change["id_registro"],
+            field_name="logradouro_canonico",
+            previous_value=change["previous_value"],
+            new_value=change["new_value"],
+            usuario=usuario,
+            note=note,
+        )
+
+    return dataset
+
 def delete_dataset(dataset: Dataset) -> None:
 
     if dataset is None:

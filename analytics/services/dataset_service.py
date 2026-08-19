@@ -110,39 +110,73 @@ class DatasetService:
         previous_canonico = (
             ""
             if current_record.get("logradouro_canonico") is None
-            else str(current_record.get("logradouro_canonico")).strip()
+            else str(
+                current_record.get("logradouro_canonico")
+            ).strip()
         )
 
         new_canonico = updates.get("logradouro_canonico")
 
-        dataset = dataset_persistence.update_dataframe_record(
-            dataset=dataset,
-            id_registro=id_registro,
-            updates=updates,
-            usuario=usuario,
-            note=note,
+        canonical_changed = (
+            "logradouro_canonico" in updates
+            and new_canonico is not None
+            and str(new_canonico).strip() != previous_canonico
         )
 
-        # Mantém o comportamento atual:
-        # somente uma alteração real do logradouro canônico
-        # gera/atualiza uma correção manual.
-        if (
-            "logradouro_canonico" in updates
-            and new_canonico
-            and str(new_canonico).strip() != previous_canonico
-        ):
-            AddressCorrectionService.apply_manual_correction(
-                logradouro_original=current_record.get(
-                    "logradouro",
-                    "",
-                ),
-                logradouro_limpo=current_record.get(
-                    "logradouro_limpo",
-                    "",
-                ),
-                logradouro_canonico=str(new_canonico).strip(),
+        # Alterações que não envolvem logradouro_canonico
+        # continuam utilizando exatamente o fluxo existente.
+        if not canonical_changed:
+            return dataset_persistence.update_dataframe_record(
+                dataset=dataset,
+                id_registro=id_registro,
+                updates=updates,
                 usuario=usuario,
                 note=note,
             )
+
+        new_canonico = str(new_canonico).strip()
+
+        if not new_canonico:
+            raise ValueError(
+                "logradouro_canonico não pode ser vazio."
+            )
+
+        logradouro_limpo = (
+            ""
+            if current_record.get("logradouro_limpo") is None
+            else str(
+                current_record.get("logradouro_limpo")
+            ).strip()
+        )
+
+        if not logradouro_limpo:
+            raise ValueError(
+                "O registro não possui logradouro_limpo."
+            )
+
+        # Primeiro propaga a alteração para todos os registros
+        # equivalentes dentro deste dataset.
+        dataset = (
+            dataset_persistence.update_dataframe_records_by_limpo(
+                dataset=dataset,
+                logradouro_limpo=logradouro_limpo,
+                logradouro_canonico=new_canonico,
+                usuario=usuario,
+                note=note,
+            )
+        )
+
+        # Depois mantém a AddressCorrection como regra persistente
+        # para o logradouro_limpo.
+        AddressCorrectionService.apply_manual_correction(
+            logradouro_original=current_record.get(
+                "logradouro",
+                "",
+            ),
+            logradouro_limpo=logradouro_limpo,
+            logradouro_canonico=new_canonico,
+            usuario=usuario,
+            note=note,
+        )
 
         return dataset
