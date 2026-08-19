@@ -1,5 +1,5 @@
 from analytics.persistence import datasets as dataset_persistence
-from analytics.models import DatasetRecordAudit
+from analytics.services.address_correction_service import (AddressCorrectionService,)
 
 class DatasetService:
 
@@ -102,10 +102,47 @@ class DatasetService:
         usuario,
         note="",
     ):
-        return dataset_persistence.update_dataframe_record(
+        current_record = dataset_persistence.get_dataframe_record(
+            dataset=dataset,
+            id_registro=id_registro,
+        )
+
+        previous_canonico = (
+            ""
+            if current_record.get("logradouro_canonico") is None
+            else str(current_record.get("logradouro_canonico")).strip()
+        )
+
+        new_canonico = updates.get("logradouro_canonico")
+
+        dataset = dataset_persistence.update_dataframe_record(
             dataset=dataset,
             id_registro=id_registro,
             updates=updates,
             usuario=usuario,
             note=note,
         )
+
+        # Mantém o comportamento atual:
+        # somente uma alteração real do logradouro canônico
+        # gera/atualiza uma correção manual.
+        if (
+            "logradouro_canonico" in updates
+            and new_canonico
+            and str(new_canonico).strip() != previous_canonico
+        ):
+            AddressCorrectionService.apply_manual_correction(
+                logradouro_original=current_record.get(
+                    "logradouro",
+                    "",
+                ),
+                logradouro_limpo=current_record.get(
+                    "logradouro_limpo",
+                    "",
+                ),
+                logradouro_canonico=str(new_canonico).strip(),
+                usuario=usuario,
+                note=note,
+            )
+
+        return dataset

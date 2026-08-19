@@ -779,3 +779,5 @@ com essa filosofia para o escopo atual.
 2. Tornar o caminho do Parquet único por Dataset, preferencialmente incorporando o dataset.id ao nome ou utilizando um diretório próprio para cada Dataset.
 
 3. Conectar a edição manual à interface de detalhes do dataset somente após estabilizar e testar completamente a camada de persistência.
+
+4. Centralizar no DatasetService a coordenação entre edição do registro, atualização de correção e auditoria, mantendo as camadas de persistence responsáveis apenas pelo armazenamento.

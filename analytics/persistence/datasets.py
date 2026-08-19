@@ -2,7 +2,6 @@ from pathlib import Path
 import pandas as pd
 from analytics.models import Dataset
 from analytics.models import DatasetRecordAudit
-from analytics.persistence import corrections as corrections_persistence
 
 def save_dataframe_as_parquet(dataframe: pd.DataFrame, path: str | Path) -> Path:
     """
@@ -66,14 +65,6 @@ def create_dataset(
         arquivo=arquivo,
         quantidade_registros=quantidade_registros,
     )
-
-def list_datasets_for_user(usuario):
-    return (
-        Dataset.objects
-        .filter(usuario=usuario)
-        .order_by("-criado_em")
-    )
-
 
 def get_dataset_for_user(dataset_id, usuario):
     return (
@@ -193,7 +184,7 @@ def update_dataframe_record(
     id_registro = str(id_registro)
 
     mask = (
-        dataframe["id_registro"].astype(str) == id_registro
+        dataframe["id_registro"] == id_registro
     )
 
     if not mask.any():
@@ -218,9 +209,6 @@ def update_dataframe_record(
     row_index = dataframe.index[mask][0]
 
     changes = []
-    logradouro_canonico_changed = False
-    logradouro_limpo_for_correction = None
-    logradouro_original_for_correction = None
 
     for field_name, new_value in updates.items():
 
@@ -277,21 +265,6 @@ def update_dataframe_record(
             }
         )
 
-        # Marca se logradouro_canonico foi alterado
-        if field_name == "logradouro_canonico":
-            logradouro_canonico_changed = True
-            # Obtém logradouro_limpo e original para criar/atualizar AddressCorrection
-            if "logradouro_limpo" in dataframe.columns:
-                logradouro_limpo_for_correction = dataframe.at[
-                    row_index,
-                    "logradouro_limpo",
-                ]
-            if "logradouro" in dataframe.columns:
-                logradouro_original_for_correction = dataframe.at[
-                    row_index,
-                    "logradouro",
-                ]
-
         dataframe.at[
             row_index,
             field_name,
@@ -299,52 +272,6 @@ def update_dataframe_record(
 
     if not changes:
         return dataset
-
-    # Se logradouro_canonico foi alterado, cria/atualiza AddressCorrection
-    # e marca correcao_manual_aplicada como True
-    if logradouro_canonico_changed and logradouro_limpo_for_correction:
-        logradouro_canonico_new_value = None
-        for change in changes:
-            if change["field_name"] == "logradouro_canonico":
-                logradouro_canonico_new_value = change["new_value"]
-                break
-
-        if logradouro_canonico_new_value:
-            # Obtém ou cria a correção
-            existing_correction = (
-                corrections_persistence
-                .get_correction_by_limpo(logradouro_limpo_for_correction)
-            )
-
-            if existing_correction:
-                # Atualiza correção existente
-                corrections_persistence.update_correction_with_audit(
-                    correction=existing_correction,
-                    autor=str(usuario),
-                    origin="DATASET",
-                    note=note,
-                    logradouro_canonico=logradouro_canonico_new_value,
-                    status="APROVADO",
-                )
-            else:
-                # Cria nova correção
-                corrections_persistence.save_correction_with_audit(
-                    logradouro_original=str(logradouro_original_for_correction or ""),
-                    logradouro_limpo=logradouro_limpo_for_correction,
-                    logradouro_canonico=logradouro_canonico_new_value,
-                    status="APROVADO",
-                    origem="MANUAL",
-                    autor=str(usuario),
-                    origin="DATASET",
-                    note=note,
-                )
-
-            # Marca correcao_manual_aplicada como True
-            if "correcao_manual_aplicada" in dataframe.columns:
-                dataframe.at[
-                    row_index,
-                    "correcao_manual_aplicada",
-                ] = True
 
     # Salva o Parquet atualizado.
     save_processed_dataframe(
@@ -406,3 +333,39 @@ def cleanup_orphaned_datasets():
 
     return removed
 
+def get_dataframe_record(
+    dataset: Dataset,
+    id_registro,
+) -> dict:
+    """
+    Retorna um registro do DataFrame processado pelo id_registro.
+    """
+    if dataset is None:
+        raise ValueError("dataset é obrigatório")
+
+    if not dataset.resultado_processado:
+        raise ValueError(
+            "O dataset ainda não possui resultado processado."
+        )
+
+    dataframe = load_processed_dataframe(dataset)
+
+    if "id_registro" not in dataframe.columns:
+        raise ValueError(
+            "O dataset não possui a coluna id_registro."
+        )
+
+    id_registro = str(id_registro)
+
+    mask = (
+        dataframe["id_registro"] == id_registro
+    )
+
+    if not mask.any():
+        raise ValueError(
+            f"Registro não encontrado: {id_registro}"
+        )
+
+    row_index = dataframe.index[mask][0]
+
+    return dataframe.loc[row_index].to_dict()
