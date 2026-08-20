@@ -14,7 +14,9 @@ import tempfile
 import json
 
 from django.http import JsonResponse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
+
+from analytics.services.dataset_search_service import DatasetSearchService
 
 @login_required
 def dataset_list(request):
@@ -39,6 +41,8 @@ def dataset_detail(request, dataset_id):
     if not dataset:
         raise Http404("Dataset não encontrado.")
 
+    search_query = request.GET.get("q", "").strip()
+    
     page_obj = None
     audits_by_record = {}
     records_json = []
@@ -65,6 +69,12 @@ def dataset_detail(request, dataset_id):
             dataframe = dataframe[
                 dataset_columns
             ].fillna("")
+
+            if search_query:
+                dataframe = DatasetSearchService.filter_dataframe(
+                    dataframe,
+                    search_query,
+                )
 
             records = dataframe.to_dict("records")
 
@@ -198,6 +208,7 @@ def dataset_detail(request, dataset_id):
             "dataset_columns": dataset_columns,
             "audits_by_record": audits_by_record,
             "records_json": records_json,
+            "search_query": search_query,
         },
     )
 
@@ -368,6 +379,51 @@ def dataset_update_record(request, dataset_id):
             {
                 "success": False,
                 "error": "Não foi possível atualizar o registro.",
+            },
+            status=500,
+        )
+
+@login_required
+@require_GET
+def dataset_search_suggestions(request, dataset_id):
+    dataset = DatasetService.get_for_user(
+        dataset_id,
+        request.user,
+    )
+
+    if not dataset:
+        raise Http404("Dataset não encontrado.")
+
+    query = request.GET.get("q", "").strip()
+
+    if len(query) < 2:
+        return JsonResponse({
+            "suggestions": [],
+        })
+
+    if not dataset.resultado_processado:
+        return JsonResponse({
+            "suggestions": [],
+        })
+
+    try:
+        dataframe = DatasetService.load_processed_dataframe(
+            dataset
+        )
+
+        suggestions = DatasetSearchService.get_fuzzy_suggestions(
+            dataframe,
+            query,
+        )
+
+        return JsonResponse({
+            "suggestions": suggestions,
+        })
+
+    except Exception:
+        return JsonResponse(
+            {
+                "suggestions": [],
             },
             status=500,
         )

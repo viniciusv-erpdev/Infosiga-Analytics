@@ -67,6 +67,24 @@
                 <div class="card-body">
                     <h5 class="card-title text-primary">Registros processados</h5>
 
+                    <form method="get" class="mb-3">
+                        <div class="input-group">
+                            <input type="search" name="q" class="form-control" placeholder="Pesquisar logradouro..."
+                                value="{{ search_query }}" autocomplete="off">
+
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-search"></i>
+                                Pesquisar
+                            </button>
+
+                            {% if search_query %}
+                            <a href="{% url 'dataset_detail' dataset.id %}" class="btn btn-outline-secondary">
+                                Limpar
+                            </a>
+                            {% endif %}
+                        </div>
+                    </form>
+
                     {% if dataset.resultado_processado and page_obj %}
                     <div class="table-responsive">
                         <table class="table table-sm table-striped align-middle mb-0">
@@ -152,7 +170,8 @@
                         <ul class="pagination justify-content-center mb-0">
                             {% if page_obj.has_previous %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                                <a class="page-link"
+                                    href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Anterior</a>
                             </li>
                             {% else %}
                             <li class="page-item disabled"><span class="page-link">Anterior</span></li>
@@ -162,9 +181,15 @@
                             {% if num == page_obj.number %}
                             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                             {% elif num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %} <li
-                                class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                class="page-item"><a class="page-link"
+                                    href="?page={{ num }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">
+                                    {{ num }}
+                                </a></li>
                                 {% elif num == 1 or num == page_obj.paginator.num_pages %}
-                                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                <li class="page-item"><a class="page-link"
+                                        href="?page={{ num }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">
+                                        {{ num }}
+                                    </a></li>
                                 {% elif num == page_obj.number|add:-3 or num == page_obj.number|add:3 %}
                                 <li class="page-item disabled"><span class="page-link">…</span></li>
                                 {% endif %}
@@ -172,13 +197,15 @@
 
                                 {% if page_obj.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Próximo</a>
+                                    <a class="page-link"
+                                        href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Próximo</a>
                                 </li>
                                 {% else %}
                                 <li class="page-item disabled"><span class="page-link">Próximo</span></li>
                                 {% endif %}
                         </ul>
                     </nav>
+
                     {% endif %}
                     {% elif dataset.resultado_processado %}
                     <div class="alert alert-warning mb-0">
