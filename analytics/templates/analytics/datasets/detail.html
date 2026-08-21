@@ -3,28 +3,48 @@
 
 {% block content %}
 <div class="container py-4">
+
     <div class="d-flex justify-content-between align-items-start mb-4 gap-3 flex-column flex-md-row">
         <div>
             <h2 class="mb-1">Detalhes do dataset</h2>
-            <p class="text-muted mb-0">Visualize os registros processados e baixe o arquivo final.</p>
+            <p class="text-muted mb-0">
+                Visualize os registros processados e baixe o arquivo final.
+            </p>
         </div>
+
         <div class="d-flex gap-2 flex-wrap">
+
             <a href="{% url 'dataset_list' %}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Voltar para lista
+                <i class="bi bi-arrow-left"></i>
+                Voltar para lista
             </a>
+
             {% if dataset.resultado_processado %}
             <a href="{% url 'dataset_download' dataset.id %}" class="btn btn-primary">
-                <i class="bi bi-download"></i> Baixar arquivo processado
+                <i class="bi bi-download"></i>
+                Baixar arquivo processado
             </a>
             {% endif %}
+
         </div>
     </div>
 
+
     <div class="row g-4 mb-4">
+
+        <!-- ===================================================== -->
+        <!-- RESUMO DO DATASET -->
+        <!-- ===================================================== -->
+
         <div class="col-lg-4">
+
             <div class="card shadow-sm border-0 h-100">
+
                 <div class="card-body">
-                    <h5 class="card-title text-primary">Resumo</h5>
+
+                    <h5 class="card-title text-primary">
+                        Resumo
+                    </h5>
 
                     <div class="mb-3">
                         <strong>Arquivo original</strong>
@@ -38,212 +58,462 @@
 
                     <div class="mb-3">
                         <strong>Criado em</strong>
-                        <div>{{ dataset.criado_em|date:"d/m/Y H:i" }}</div>
+                        <div>
+                            {{ dataset.criado_em|date:"d/m/Y H:i" }}
+                        </div>
                     </div>
 
                     <div class="mb-3">
                         <strong>Processado</strong>
+
                         <div>
+
                             {% if dataset.resultado_processado %}
-                            <span class="badge bg-success">Sim</span>
+                            <span class="badge bg-success">
+                                Sim
+                            </span>
                             {% else %}
-                            <span class="badge bg-secondary">Não</span>
+                            <span class="badge bg-secondary">
+                                Não
+                            </span>
                             {% endif %}
+
                         </div>
                     </div>
 
                     {% if dataset.resultado_processado %}
+
                     <div>
                         <strong>Arquivo processado</strong>
-                        <div>{{ dataset.resultado_processado.name|slice:":50" }}</div>
+
+                        <div>
+                            {{ dataset.resultado_processado.name|slice:":50" }}
+                        </div>
                     </div>
+
                     {% endif %}
+
                 </div>
+
             </div>
+
         </div>
 
-        <div class="col-lg-8">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <h5 class="card-title text-primary">Registros processados</h5>
 
-                    {% if dataset.resultado_processado and page_obj %}
+        <!-- ===================================================== -->
+        <!-- REGISTROS -->
+        <!-- ===================================================== -->
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-body">
+
+                    <h5 class="card-title text-primary">
+                        Registros processados
+                    </h5>
+
+
+                    <!-- ================================================= -->
+                    <!-- BARRA DE PESQUISA -->
+                    <!-- IMPORTANTE: NÃO DEPENDE DE page_obj -->
+                    <!-- ================================================= -->
+
+                    {% if dataset.resultado_processado %}
+
                     <div class="mb-3">
-                        <label for="dataset-search" class="form-label fw-semibold">
+
+                        <label
+                            for="dataset-search"
+                            class="form-label fw-semibold"
+                        >
                             Pesquisar logradouro
                         </label>
+
 
                         <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-start">
 
                             <div class="input-group flex-grow-1">
-                                <input type="search" id="dataset-search" class="form-control"
-                                    placeholder="Digite o nome da via..." value="{{ search_query }}" autocomplete="off">
 
-                                <button type="button" class="btn btn-primary" id="dataset-search-button">
+                                <input
+                                    type="search"
+                                    id="dataset-search"
+                                    class="form-control"
+                                    placeholder="Digite o nome da via..."
+                                    value="{{ search_query }}"
+                                    autocomplete="off"
+                                >
+
+                                <button
+                                    type="button"
+                                    class="btn btn-primary"
+                                    id="dataset-search-button"
+                                >
                                     <i class="bi bi-search"></i>
                                     Pesquisar
                                 </button>
+
                             </div>
 
+
                             {% if search_query %}
-                            <a href="{% url 'dataset_detail' dataset.id %}"
-                                class="btn btn-outline-secondary d-flex align-items-center gap-1">
+
+                            <a
+                                href="{% url 'dataset_detail' dataset.id %}"
+                                class="btn btn-outline-secondary d-flex align-items-center gap-1"
+                            >
                                 <i class="bi bi-x-circle"></i>
                                 Limpar
                             </a>
+
                             {% endif %}
 
                         </div>
 
-                        <div id="dataset-search-suggestions" class="list-group w-100 shadow-sm d-none">
+
+                        <!-- Sugestões -->
+
+                        <div
+                            id="dataset-search-suggestions"
+                            class="list-group w-100 shadow-sm d-none"
+                        >
                         </div>
+
                     </div>
+
                     {% endif %}
 
-                    {% if dataset.resultado_processado and page_obj %}
-                    <div class="table-responsive">
-                        <table class="table table-sm table-striped align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Logradouro original</th>
-                                    <th>Número</th>
-                                    <th>Logradouro sugerido</th>
-                                    <th>Logradouro canônico</th>
-                                    <th>Correção manual</th>
-                                    <th>Auditoria</th>
-                                    <th>Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in page_obj.object_list %}
-                                <tr data-id-registro="{{ row.id_registro }}">
 
-                                    <td>
-                                        <span class="fw-semibold">
-                                            {{ row.logradouro }}
-                                        </span>
-                                    </td>
+                    <!-- ================================================= -->
+                    <!-- CONTEÚDO DOS REGISTROS -->
+                    <!-- ================================================= -->
 
-                                    <td>
-                                        {{ row.numero_logradouro|default:"-" }}
-                                    </td>
+                    {% if dataset.resultado_processado %}
 
-                                    <td>
-                                        {{ row.logradouro_sugerido|default:"-" }}
-                                    </td>
 
-                                    <td>
-                                        {{ row.logradouro_canonico|default:"-" }}
-                                    </td>
+                        {% if page_obj %}
 
-                                    <td>
-                                        {% if row.correcao_manual_aplicada %}
-                                        <span class="badge bg-success">
-                                            Sim
-                                        </span>
-                                        {% else %}
-                                        <span class="text-muted">
-                                            Não
-                                        </span>
-                                        {% endif %}
-                                    </td>
+                        <!-- ================================================= -->
+                        <!-- TABELA -->
+                        <!-- ================================================= -->
 
-                                    <td>
-                                        {% if row.audits %}
-                                        <small>
-                                            {{ row.audits.0.created_at }}
-                                        </small>
+                        <div class="table-responsive">
 
-                                        <br>
+                            <table class="table table-sm table-striped align-middle mb-0">
 
-                                        <small class="text-muted">
-                                            {{ row.audits.0.usuario }}
-                                        </small>
-                                        {% else %}
-                                        <span class="text-muted">
-                                            Nunca alterado
-                                        </span>
-                                        {% endif %}
-                                    </td>
+                                <thead class="table-light">
 
-                                    <td>
-                                        <button type="button" class="btn btn-sm btn-outline-primary btn-edit-record"
-                                            data-id-registro="{{ row.id_registro }}">
-                                            <i class="bi bi-pencil"></i>
-                                            Editar
-                                        </button>
-                                    </td>
+                                    <tr>
+                                        <th>Logradouro original</th>
+                                        <th>Número</th>
+                                        <th>Logradouro sugerido</th>
+                                        <th>Logradouro canônico</th>
+                                        <th>Correção manual</th>
+                                        <th>Auditoria</th>
+                                        <th>Ação</th>
+                                    </tr>
 
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
 
-                    {% if page_obj.has_other_pages %}
-                    <nav class="mt-4" aria-label="Paginação de registros">
-                        <ul class="pagination justify-content-center mb-0">
-                            {% if page_obj.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link"
-                                    href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Anterior</a>
-                            </li>
-                            {% else %}
-                            <li class="page-item disabled"><span class="page-link">Anterior</span></li>
-                            {% endif %}
 
-                            {% for num in page_obj.paginator.page_range %}
-                            {% if num == page_obj.number %}
-                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                            {% elif num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %} <li
-                                class="page-item"><a class="page-link"
-                                    href="?page={{ num }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">
-                                    {{ num }}
-                                </a></li>
-                                {% elif num == 1 or num == page_obj.paginator.num_pages %}
-                                <li class="page-item"><a class="page-link"
-                                        href="?page={{ num }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">
-                                        {{ num }}
-                                    </a></li>
-                                {% elif num == page_obj.number|add:-3 or num == page_obj.number|add:3 %}
-                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                                <tbody>
+
+                                    {% for row in page_obj.object_list %}
+
+                                    <tr data-id-registro="{{ row.id_registro }}">
+
+                                        <td>
+                                            <span class="fw-semibold">
+                                                {{ row.logradouro }}
+                                            </span>
+                                        </td>
+
+
+                                        <td>
+                                            {{ row.numero_logradouro|default:"-" }}
+                                        </td>
+
+
+                                        <td>
+                                            {{ row.logradouro_sugerido|default:"-" }}
+                                        </td>
+
+
+                                        <td>
+                                            {{ row.logradouro_canonico|default:"-" }}
+                                        </td>
+
+
+                                        <td>
+
+                                            {% if row.correcao_manual_aplicada %}
+
+                                            <span class="badge bg-success">
+                                                Sim
+                                            </span>
+
+                                            {% else %}
+
+                                            <span class="text-muted">
+                                                Não
+                                            </span>
+
+                                            {% endif %}
+
+                                        </td>
+
+
+                                        <td>
+
+                                            {% if row.audits %}
+
+                                            <small>
+                                                {{ row.audits.0.created_at }}
+                                            </small>
+
+                                            <br>
+
+                                            <small class="text-muted">
+                                                {{ row.audits.0.usuario }}
+                                            </small>
+
+                                            {% else %}
+
+                                            <span class="text-muted">
+                                                Nunca alterado
+                                            </span>
+
+                                            {% endif %}
+
+                                        </td>
+
+
+                                        <td>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-primary btn-edit-record"
+                                                data-id-registro="{{ row.id_registro }}"
+                                            >
+                                                <i class="bi bi-pencil"></i>
+                                                Editar
+                                            </button>
+
+                                        </td>
+
+                                    </tr>
+
+                                    {% endfor %}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        <!-- ================================================= -->
+                        <!-- PAGINAÇÃO -->
+                        <!-- ================================================= -->
+
+                        {% if page_obj.has_other_pages %}
+
+                        <nav
+                            class="mt-4"
+                            aria-label="Paginação de registros"
+                        >
+
+                            <ul class="pagination justify-content-center mb-0">
+
+
+                                <!-- ANTERIOR -->
+
+                                {% if page_obj.has_previous %}
+
+                                <li class="page-item">
+
+                                    <a
+                                        class="page-link"
+                                        href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
+                                    >
+                                        Anterior
+                                    </a>
+
+                                </li>
+
+                                {% else %}
+
+                                <li class="page-item disabled">
+                                    <span class="page-link">
+                                        Anterior
+                                    </span>
+                                </li>
+
                                 {% endif %}
+
+
+                                <!-- NÚMEROS -->
+
+                                {% for num in page_obj.paginator.page_range %}
+
+                                    {% if num == page_obj.number %}
+
+                                    <li class="page-item active">
+                                        <span class="page-link">
+                                            {{ num }}
+                                        </span>
+                                    </li>
+
+                                    {% elif num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+
+                                    <li class="page-item">
+
+                                        <a
+                                            class="page-link"
+                                            href="?page={{ num }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
+                                        >
+                                            {{ num }}
+                                        </a>
+
+                                    </li>
+
+                                    {% elif num == 1 or num == page_obj.paginator.num_pages %}
+
+                                    <li class="page-item">
+
+                                        <a
+                                            class="page-link"
+                                            href="?page={{ num }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
+                                        >
+                                            {{ num }}
+                                        </a>
+
+                                    </li>
+
+                                    {% elif num == page_obj.number|add:-3 or num == page_obj.number|add:3 %}
+
+                                    <li class="page-item disabled">
+
+                                        <span class="page-link">
+                                            …
+                                        </span>
+
+                                    </li>
+
+                                    {% endif %}
+
                                 {% endfor %}
+
+
+                                <!-- PRÓXIMO -->
 
                                 {% if page_obj.has_next %}
+
                                 <li class="page-item">
-                                    <a class="page-link"
-                                        href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Próximo</a>
+
+                                    <a
+                                        class="page-link"
+                                        href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
+                                    >
+                                        Próximo
+                                    </a>
+
                                 </li>
+
                                 {% else %}
-                                <li class="page-item disabled"><span class="page-link">Próximo</span></li>
+
+                                <li class="page-item disabled">
+
+                                    <span class="page-link">
+                                        Próximo
+                                    </span>
+
+                                </li>
+
                                 {% endif %}
-                        </ul>
-                    </nav>
+
+                            </ul>
+
+                        </nav>
+
+                        {% endif %}
+
+
+                        {% else %}
+
+                        <!-- ================================================= -->
+                        <!-- ARQUIVO PROCESSADO, MAS SEM RESULTADOS -->
+                        <!-- ================================================= -->
+
+                        <div class="alert alert-warning mb-0">
+
+                            <i class="bi bi-search me-1"></i>
+
+                            Nenhum registro encontrado para a pesquisa
+                            {% if search_query %}
+                            <strong>"{{ search_query }}"</strong>
+                            {% endif %}.
+
+                            <div class="mt-2">
+
+                                Tente pesquisar por outro nome de logradouro
+                                ou utilize uma das sugestões disponíveis.
+
+                            </div>
+
+                        </div>
+
+                        {% endif %}
+
+
+                    {% else %}
+
+                        <!-- ================================================= -->
+                        <!-- DATASET SEM ARQUIVO PROCESSADO -->
+                        <!-- ================================================= -->
+
+                        <div class="alert alert-info mb-0">
+
+                            <i class="bi bi-info-circle me-1"></i>
+
+                            Este dataset ainda não possui um arquivo processado.
+
+                        </div>
 
                     {% endif %}
-                    {% elif dataset.resultado_processado %}
-                    <div class="alert alert-warning mb-0">
-                        Não foi possível carregar os registros processados deste dataset.
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info mb-0">
-                        Este dataset ainda não possui um arquivo processado.
-                    </div>
-                    {% endif %}
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
-<div class="modal fade" id="editRecordModal" tabindex="-1" aria-hidden="true">
+
+<!-- ============================================================= -->
+<!-- MODAL DE EDIÇÃO -->
+<!-- ============================================================= -->
+
+<div
+    class="modal fade"
+    id="editRecordModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
 
         <div class="modal-content">
 
+
             <div class="modal-header">
+
                 <div>
+
                     <h5 class="modal-title">
                         Editar registro
                     </h5>
@@ -251,57 +521,89 @@
                     <small class="text-muted">
                         As alterações serão registradas na auditoria.
                     </small>
+
                 </div>
 
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Fechar"
+                ></button>
+
             </div>
+
 
             <div class="modal-body">
 
-                <input type="hidden" id="edit-id-registro">
+                <input
+                    type="hidden"
+                    id="edit-id-registro"
+                >
+
 
                 <!-- DADOS ORIGINAIS -->
 
                 <div class="card bg-light border-0 mb-4">
+
                     <div class="card-body">
 
                         <h6 class="text-primary mb-3">
                             Dados originais
                         </h6>
 
+
                         <div class="mb-3">
+
                             <label class="form-label fw-semibold">
                                 Logradouro original
                             </label>
 
-                            <div id="edit-logradouro-original" class="form-control-plaintext fw-semibold">
+                            <div
+                                id="edit-logradouro-original"
+                                class="form-control-plaintext fw-semibold"
+                            >
                                 -
                             </div>
+
                         </div>
 
                     </div>
+
                 </div>
+
 
                 <!-- DADOS PROCESSADOS -->
 
                 <div class="card border-0 mb-4">
+
                     <div class="card-body px-0">
 
                         <h6 class="text-primary mb-3">
                             Dados processados
                         </h6>
 
+
                         <div class="row g-3">
+
 
                             <div class="col-md-4">
 
-                                <label for="edit-numero-logradouro" class="form-label fw-semibold">
+                                <label
+                                    for="edit-numero-logradouro"
+                                    class="form-label fw-semibold"
+                                >
                                     Número
                                 </label>
 
-                                <input type="number" class="form-control" id="edit-numero-logradouro">
+                                <input
+                                    type="number"
+                                    class="form-control"
+                                    id="edit-numero-logradouro"
+                                >
 
                             </div>
+
 
                             <div class="col-md-8">
 
@@ -309,26 +611,39 @@
                                     Logradouro sugerido
                                 </label>
 
-                                <div id="edit-logradouro-sugerido" class="form-control-plaintext text-muted">
+                                <div
+                                    id="edit-logradouro-sugerido"
+                                    class="form-control-plaintext text-muted"
+                                >
                                     -
                                 </div>
 
                             </div>
 
+
                             <div class="col-12">
 
-                                <label for="edit-logradouro-canonico" class="form-label fw-semibold">
+                                <label
+                                    for="edit-logradouro-canonico"
+                                    class="form-label fw-semibold"
+                                >
                                     Logradouro canônico
                                 </label>
 
-                                <input type="text" class="form-control" id="edit-logradouro-canonico">
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="edit-logradouro-canonico"
+                                >
 
                             </div>
 
                         </div>
 
                     </div>
+
                 </div>
+
 
                 <!-- HISTÓRICO -->
 
@@ -341,47 +656,70 @@
                         </h6>
 
                         <div id="edit-audit-history">
+
                             <span class="text-muted">
                                 Nenhuma alteração registrada.
                             </span>
+
                         </div>
 
                     </div>
 
                 </div>
 
+
                 <div class="mt-4">
 
-                    <label for="edit-note" class="form-label fw-semibold">
+                    <label
+                        for="edit-note"
+                        class="form-label fw-semibold"
+                    >
                         Observação da alteração
                     </label>
 
-                    <textarea id="edit-note" class="form-control" rows="3"
-                        placeholder="Explique brevemente o motivo da alteração..."></textarea>
+                    <textarea
+                        id="edit-note"
+                        class="form-control"
+                        rows="3"
+                        placeholder="Explique brevemente o motivo da alteração..."
+                    ></textarea>
 
                 </div>
 
             </div>
 
+
             <div class="modal-footer">
 
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal"
+                >
                     Cancelar
                 </button>
 
-                <button type="button" class="btn btn-primary" id="btn-save-record">
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    id="btn-save-record"
+                >
                     <i class="bi bi-save"></i>
                     Salvar alterações
                 </button>
 
             </div>
 
+
         </div>
 
     </div>
+
 </div>
 
+
 {{ page_obj.object_list|json_script:"dataset-records-data" }}
+
 
 <script src="{% static 'analytics/js/dataset.js' %}"></script>
 <script src="{% static 'analytics/js/dataset_search.js' %}"></script>

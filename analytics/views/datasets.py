@@ -60,6 +60,12 @@ def dataset_detail(request, dataset_id):
     # Colunas que devem estar disponíveis internamente mas não serem exibidas na tabela
     internal_only_columns = ["logradouro_limpo"]
 
+    load_error = False
+    page_obj = None
+    audits_by_record = {}
+    records_json = []
+    load_error = False
+
     if dataset.resultado_processado:
         try:
             dataframe = DatasetService.load_processed_dataframe(
@@ -194,6 +200,8 @@ def dataset_detail(request, dataset_id):
                 })
 
         except Exception:
+            load_error = True
+
             messages.error(
                 request,
                 "Não foi possível carregar o resultado processado deste dataset."
@@ -209,6 +217,7 @@ def dataset_detail(request, dataset_id):
             "audits_by_record": audits_by_record,
             "records_json": records_json,
             "search_query": search_query,
+            "load_error": load_error,
         },
     )
 
