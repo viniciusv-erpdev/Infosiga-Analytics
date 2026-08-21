@@ -28,4 +28,4 @@ uploads/
 
 *.parquet
 
-datasets/
+datasets/processed/*
