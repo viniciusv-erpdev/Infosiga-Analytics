@@ -73,20 +73,26 @@
                             Pesquisar logradouro
                         </label>
 
-                        <div class="input-group">
-                            <input type="search" id="dataset-search" class="form-control"
-                                placeholder="Digite o nome da via..." value="{{ search_query }}" autocomplete="off">
+                        <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-start">
 
-                            <button type="button" class="btn btn-primary" id="dataset-search-button">
-                                <i class="bi bi-search"></i>
-                                Pesquisar
-                            </button>
+                            <div class="input-group flex-grow-1">
+                                <input type="search" id="dataset-search" class="form-control"
+                                    placeholder="Digite o nome da via..." value="{{ search_query }}" autocomplete="off">
+
+                                <button type="button" class="btn btn-primary" id="dataset-search-button">
+                                    <i class="bi bi-search"></i>
+                                    Pesquisar
+                                </button>
+                            </div>
 
                             {% if search_query %}
-                            <a href="{% url 'dataset_detail' dataset.id %}" class="btn btn-outline-secondary">
+                            <a href="{% url 'dataset_detail' dataset.id %}"
+                                class="btn btn-outline-secondary d-flex align-items-center gap-1">
+                                <i class="bi bi-x-circle"></i>
                                 Limpar
                             </a>
                             {% endif %}
+
                         </div>
 
                         <div id="dataset-search-suggestions" class="list-group w-100 shadow-sm d-none">

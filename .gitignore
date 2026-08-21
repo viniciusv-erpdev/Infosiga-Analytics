@@ -27,3 +27,5 @@ uploads/
 /processed/*
 
 *.parquet
+
+datasets/

@@ -63,15 +63,11 @@
             button.className =
                 'list-group-item list-group-item-action';
 
-            const value = suggestion.value || '';
-            const score = suggestion.score;
+            const value = suggestion.value;
 
             button.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center">
                     <span>${escapeHtml(value)}</span>
-                    <small class="text-muted">
-                        ${score}% de similaridade
-                    </small>
                 </div>
             `;
 
