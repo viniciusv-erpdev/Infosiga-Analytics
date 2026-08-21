@@ -15,7 +15,7 @@ class DatasetSearchService:
         "logradouro_canonico",
     )
     
-    FUZZY_THRESHOLD = 60 
+    FUZZY_THRESHOLD = 78 
     FUZZY_LIMIT = 10
     
     @classmethod

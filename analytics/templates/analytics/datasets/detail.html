@@ -67,12 +67,17 @@
                 <div class="card-body">
                     <h5 class="card-title text-primary">Registros processados</h5>
 
-                    <form method="get" class="mb-3">
-                        <div class="input-group">
-                            <input type="search" name="q" class="form-control" placeholder="Pesquisar logradouro..."
-                                value="{{ search_query }}" autocomplete="off">
+                    {% if dataset.resultado_processado and page_obj %}
+                    <div class="mb-3">
+                        <label for="dataset-search" class="form-label fw-semibold">
+                            Pesquisar logradouro
+                        </label>
 
-                            <button class="btn btn-primary" type="submit">
+                        <div class="input-group">
+                            <input type="search" id="dataset-search" class="form-control"
+                                placeholder="Digite o nome da via..." value="{{ search_query }}" autocomplete="off">
+
+                            <button type="button" class="btn btn-primary" id="dataset-search-button">
                                 <i class="bi bi-search"></i>
                                 Pesquisar
                             </button>
@@ -83,7 +88,11 @@
                             </a>
                             {% endif %}
                         </div>
-                    </form>
+
+                        <div id="dataset-search-suggestions" class="list-group w-100 shadow-sm d-none">
+                        </div>
+                    </div>
+                    {% endif %}
 
                     {% if dataset.resultado_processado and page_obj %}
                     <div class="table-responsive">
@@ -369,5 +378,6 @@
 {{ page_obj.object_list|json_script:"dataset-records-data" }}
 
 <script src="{% static 'analytics/js/dataset.js' %}"></script>
+<script src="{% static 'analytics/js/dataset_search.js' %}"></script>
 
 {% endblock %}
