@@ -21,8 +21,16 @@ EXPANSOES_SEMANTICAS = {
     "dr": "doutor",
     "cel": "coronel",
     "estr": "estrada",
+    "prof": "professor",
 }
 
+APOSTROPHE_VARIANTS = {
+    "'",
+    "´",
+    "’",
+    "‘",
+    "`",
+}
 
 def _expandir_abreviacoes_semanticas(tokens):
     tokens_expandidos = []
@@ -50,6 +58,7 @@ def normalize_address(logradouro):
     if not texto:
         return ""
 
+    texto = normalize_apostrophes(texto)
     texto = unicodedata.normalize("NFKD", texto)
     texto = "".join(char for char in texto if not unicodedata.combining(char))
     texto = texto.replace(".", " ")
@@ -63,3 +72,12 @@ def normalize_address(logradouro):
     tokens_normalizados = [ABREVIACOES.get(token, token) for token in tokens]
     tokens_expandidos = _expandir_abreviacoes_semanticas(tokens_normalizados)
     return " ".join(tokens_expandidos)
+
+def normalize_apostrophes(value):
+    if not isinstance(value, str):
+        return value
+
+    for char in APOSTROPHE_VARIANTS:
+        value = value.replace(char, "")
+
+    return value
