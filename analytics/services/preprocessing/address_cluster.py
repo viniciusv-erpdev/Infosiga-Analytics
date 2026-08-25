@@ -4,7 +4,7 @@ from analytics.services.preprocessing.similarity import similarity_score
 
 
 TIPOS_DE_VIA = {"rua", "avenida", "rodovia", "estrada"}
-SIMILARITY_THRESHOLD = 95
+SIMILARITY_THRESHOLD = 90
 
 
 def cluster_addresses(lista_logradouros):
