@@ -21,24 +21,62 @@
         </div>
     </div>
 
-    <nav class="navbar navbar-dark fixed-top">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand mb-0 h1 d-flex align-items-center gap-2" href="{% url 'home' %}">
-                <i class="bi bi-graph-up-arrow"></i>
-                <span>Infosiga Analytics</span>
-            </a>
-            <div class="d-flex align-items-center gap-2">
-                {% if user.is_authenticated %}
-                    <a class="btn btn-outline-light btn-sm" href="{% url 'dataset_list' %}">Meus datasets</a>
-                    <span class="navbar-text text-light me-2">Usuário: {{ user.username }}</span>
-                    <a class="btn btn-outline-light btn-sm" href="{% url 'logout' %}">Sair</a>
-                {% else %}
-                    <a class="btn btn-outline-light btn-sm" href="{% url 'login' %}">Entrar</a>
-                    <a class="btn btn-light btn-sm" href="{% url 'register' %}">Criar conta</a>
-                {% endif %}
-            </div>
+<nav class="navbar navbar-dark fixed-top">
+    <div class="container-fluid px-4">
+
+        <!-- Marca -->
+        <a class="navbar-brand mb-0 h1 d-flex align-items-center gap-2"
+           href="{% url 'home' %}">
+            <i class="bi bi-graph-up-arrow"></i>
+            <span>Infosiga Analytics</span>
+        </a>
+
+        <div class="d-flex align-items-center gap-4">
+
+            {% if user.is_authenticated %}
+
+                <!-- Navegação -->
+                <a href="{% url 'dataset_list' %}"
+                   class="nav-link text-light d-flex align-items-center gap-1">
+                    <i class="bi bi-database"></i>
+                    <span>Datasets</span>
+                </a>
+
+                <!-- Usuário -->
+                <div class="d-flex align-items-center gap-2 text-light">
+                    <i class="bi bi-person-circle"></i>
+                    <span class="small">{{ user.username }}</span>
+                </div>
+
+                <!-- Separador -->
+                <div class="vr bg-light opacity-50"></div>
+
+                <!-- Sair -->
+                <a href="{% url 'logout' %}"
+                   class="btn btn-outline-light btn-sm d-flex align-items-center gap-1">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Sair</span>
+                </a>
+
+            {% else %}
+
+                <a href="{% url 'login' %}"
+                   class="btn btn-outline-light btn-sm d-flex align-items-center gap-1">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    <span>Entrar</span>
+                </a>
+
+                <a href="{% url 'register' %}"
+                   class="btn btn-light btn-sm d-flex align-items-center gap-1">
+                    <i class="bi bi-person-plus"></i>
+                    <span>Criar conta</span>
+                </a>
+
+            {% endif %}
+
         </div>
-    </nav>
+    </div>
+</nav>
 
     <main class="pt-5 mt-5">
         <div class="container py-4">
