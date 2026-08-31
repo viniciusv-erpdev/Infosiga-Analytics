@@ -24,8 +24,4 @@ uploads/
 
 *.xlsx
 
-/processed/*
-
 *.parquet
-
-datasets/processed/*
