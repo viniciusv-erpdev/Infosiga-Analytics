@@ -1,3 +1,4 @@
+import io
 import os
 
 from django.http import request
@@ -37,9 +38,8 @@ def load_dataframe(arquivo):
     extensao = arquivo.name.rsplit(".", 1)[-1].lower()
 
     if extensao == "xlsx":
+        arquivo.seek(0)
         return pd.read_excel(arquivo)
-
-    caminho_arquivo = arquivo.temporary_file_path()
 
     codificacoes = [
         "utf-8",
@@ -51,12 +51,19 @@ def load_dataframe(arquivo):
     for encoding in codificacoes:
         try:
             print(f"Tentando {encoding}")
-            return pd.read_csv(
-                caminho_arquivo,
-                sep=";",
+            arquivo.seek(0)
+            text_stream = io.TextIOWrapper(
+                arquivo.file,
                 encoding=encoding,
-                engine="python",
             )
+            try:
+                return pd.read_csv(
+                    text_stream,
+                    sep=";",
+                    engine="python",
+                )
+            finally:
+                text_stream.detach()
         except Exception as e:
             print(f"Falhou com {encoding}: {e}")
 

@@ -1,5 +1,6 @@
 from io import BytesIO
 from pathlib import Path
+import tempfile
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 from uuid import uuid4
@@ -8,7 +9,7 @@ import pandas as pd
 from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.db import SessionStore
-from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.files.uploadedfile import SimpleUploadedFile, TemporaryUploadedFile
 from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
@@ -19,7 +20,11 @@ from analytics.models import (
     DatasetRecordAudit,
 )
 from analytics.services.dataset_service import DatasetService
-from analytics.services.file_loader import build_preview_data, process_upload
+from analytics.services.file_loader import (
+    build_preview_data,
+    load_dataframe,
+    process_upload,
+)
 from analytics.services.preprocessing.address_cluster import cluster_addresses
 from analytics.services.preprocessing.address_dictionary import build_address_dictionary
 from analytics.services.preprocessing.address_matcher import regularize_addresses
@@ -523,6 +528,152 @@ class DatasetRecordEditingTests(TestCase):
             "Rua Teste Oficial",
         )
         self.assertTrue(corrected.loc[0, "correcao_manual_aplicada"])
+
+
+class DatasetFileFlowTests(TestCase):
+    def setUp(self):
+        self.media_directory = TemporaryDirectory()
+        self.override_media = override_settings(
+            MEDIA_ROOT=self.media_directory.name
+        )
+        self.override_media.enable()
+        self.user = get_user_model().objects.create_user(
+            username="file_flow_owner",
+            password="SenhaForte123",
+        )
+        self.client.force_login(self.user)
+
+    def tearDown(self):
+        self.override_media.disable()
+        self.media_directory.cleanup()
+
+    def _create_dataset(self, dataframe, filename="detalhe.csv"):
+        dataset = DatasetService.create_from_upload(
+            usuario=self.user,
+            arquivo=SimpleUploadedFile(
+                filename,
+                b"logradouro\nRua Teste\n",
+                content_type="text/csv",
+            ),
+            quantidade_registros=len(dataframe),
+        )
+        return DatasetService.save_processed_dataframe(dataset, dataframe)
+
+    def _detail_dataframe(self):
+        return pd.DataFrame(
+            {
+                "id_registro": [str(uuid4())],
+                "logradouro": ["Rua Teste"],
+                "logradouro_limpo": ["rua teste"],
+                "numero_logradouro": [10],
+                "logradouro_sugerido": ["rua teste"],
+                "logradouro_canonico": ["Rua Teste"],
+                "correcao_manual_aplicada": [True],
+            }
+        )
+
+    def test_detail_with_all_expected_columns(self):
+        dataset = self._create_dataset(self._detail_dataframe())
+
+        response = self.client.get(
+            reverse("dataset_detail", args=[dataset.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["load_error"])
+        self.assertEqual(
+            response.context["page_obj"].object_list[0]["numero_logradouro"],
+            10,
+        )
+
+    def test_detail_without_optional_numero_logradouro(self):
+        dataframe = self._detail_dataframe().drop(
+            columns=["numero_logradouro"]
+        )
+        dataset = self._create_dataset(dataframe)
+
+        response = self.client.get(
+            reverse("dataset_detail", args=[dataset.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["load_error"])
+        record = response.context["page_obj"].object_list[0]
+        self.assertNotIn("numero_logradouro", record)
+
+    def test_load_small_csv_from_memory(self):
+        uploaded_file = SimpleUploadedFile(
+            "pequeno.csv",
+            "logradouro;numero\nRua São João;12\n".encode("utf-8"),
+            content_type="text/csv",
+        )
+
+        dataframe = load_dataframe(uploaded_file)
+
+        self.assertEqual(dataframe.loc[0, "logradouro"], "Rua São João")
+        self.assertEqual(dataframe.loc[0, "numero"], 12)
+
+    def test_load_csv_from_temporary_uploaded_file(self):
+        content = "logradouro;numero\nRua São João;12\n".encode("cp1252")
+        uploaded_file = TemporaryUploadedFile(
+            "temporario.csv",
+            "text/csv",
+            len(content),
+            "cp1252",
+        )
+        try:
+            uploaded_file.write(content)
+            uploaded_file.seek(0)
+
+            dataframe = load_dataframe(uploaded_file)
+        finally:
+            uploaded_file.close()
+
+        self.assertEqual(dataframe.loc[0, "logradouro"], "Rua São João")
+        self.assertEqual(dataframe.loc[0, "numero"], 12)
+
+    def test_download_returns_valid_xlsx(self):
+        dataset = self._create_dataset(
+            self._detail_dataframe(),
+            filename="relatorio.csv",
+        )
+
+        response = self.client.get(
+            reverse("dataset_download", args=[dataset.id])
+        )
+        content = b"".join(response.streaming_content)
+        response.close()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        exported = pd.read_excel(BytesIO(content))
+        self.assertEqual(exported.loc[0, "logradouro"], "Rua Teste")
+
+    def test_download_closes_spooled_temporary_file(self):
+        dataset = self._create_dataset(self._detail_dataframe())
+        created_files = []
+        real_spooled_file = tempfile.SpooledTemporaryFile
+
+        def create_spooled_file(*args, **kwargs):
+            temporary_file = real_spooled_file(*args, **kwargs)
+            created_files.append(temporary_file)
+            return temporary_file
+
+        with patch(
+            "analytics.views.datasets.tempfile.SpooledTemporaryFile",
+            side_effect=create_spooled_file,
+        ):
+            response = self.client.get(
+                reverse("dataset_download", args=[dataset.id])
+            )
+            b"".join(response.streaming_content)
+            response.close()
+
+        self.assertEqual(len(created_files), 1)
+        self.assertTrue(created_files[0].closed)
 
 
 class ProcessUploadTests(SimpleTestCase):

@@ -72,9 +72,22 @@ def dataset_detail(request, dataset_id):
                 dataset
             )
 
-            dataframe = dataframe[
-                dataset_columns
-            ].fillna("")
+            required_columns = {"id_registro"}
+            missing_columns = required_columns - set(dataframe.columns)
+
+            if missing_columns:
+                raise ValueError(
+                    "O dataset não possui as colunas obrigatórias: "
+                    + ", ".join(sorted(missing_columns))
+                )
+
+            available_columns = [
+                column
+                for column in dataset_columns
+                if column in dataframe.columns
+            ]
+
+            dataframe = dataframe[available_columns].fillna("")
 
             if search_query:
                 dataframe = DatasetSearchService.filter_dataframe(
@@ -244,30 +257,24 @@ def dataset_download(request, dataset_id):
             dataset
         )
 
-        temporary_file = tempfile.NamedTemporaryFile(
+        temporary_file = tempfile.SpooledTemporaryFile(
+            max_size=10 * 1024 * 1024,
             suffix=".xlsx",
-            delete=False,
         )
-
-        temporary_path = temporary_file.name
-        temporary_file.close()
 
         dataframe.to_excel(
-            temporary_path,
+            temporary_file,
             index=False,
         )
+
+        temporary_file.seek(0)
 
         filename = (
             f"{Path(dataset.nome_original).stem}_processado.xlsx"
         )
 
-        file_handle = open(
-            temporary_path,
-            "rb",
-        )
-
         response = FileResponse(
-            file_handle,
+            temporary_file,
             as_attachment=True,
             filename=filename,
         )
