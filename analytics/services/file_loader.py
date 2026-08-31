@@ -223,12 +223,20 @@ def process_upload(request):
     print(f"[DEBUG] Dataset criado: {dataset.id}")
     print(f"[DEBUG] arquivo salvo: {dataset.arquivo.name}")
 
-    dataframe_processado = run_preprocessing(dataframe_filtrado)
+    try:
+        dataframe_processado = run_preprocessing(dataframe_filtrado)
 
-    dataset = DatasetService.save_processed_dataframe(
-    dataset=dataset,
-    dataframe=dataframe_processado,
-)
+        dataset = DatasetService.save_processed_dataframe(
+            dataset=dataset,
+            dataframe=dataframe_processado,
+        )
+    except Exception:
+        DatasetService.delete(dataset)
+        messages.error(
+            request,
+            "Não foi possível processar o arquivo enviado.",
+        )
+        return form, redirect("home")
 
     print("[DEBUG] preprocessing concluído")
 

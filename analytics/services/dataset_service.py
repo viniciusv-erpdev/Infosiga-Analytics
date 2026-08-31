@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from analytics.persistence import datasets as dataset_persistence
 from analytics.services.address_correction_service import (AddressCorrectionService,)
 
@@ -96,6 +98,34 @@ class DatasetService:
 
     @staticmethod
     def update_record(
+        dataset,
+        id_registro,
+        updates,
+        usuario,
+        note="",
+    ):
+        original_dataframe = (
+            dataset_persistence.load_processed_dataframe(dataset)
+        )
+
+        try:
+            with transaction.atomic():
+                return DatasetService._update_record(
+                    dataset=dataset,
+                    id_registro=id_registro,
+                    updates=updates,
+                    usuario=usuario,
+                    note=note,
+                )
+        except Exception:
+            dataset_persistence.save_processed_dataframe(
+                dataset=dataset,
+                dataframe=original_dataframe,
+            )
+            raise
+
+    @staticmethod
+    def _update_record(
         dataset,
         id_registro,
         updates,

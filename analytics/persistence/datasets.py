@@ -93,25 +93,24 @@ def save_processed_dataframe(
     nome_original = Path(dataset.nome_original).stem
     nome_arquivo = f"{nome_original}_processado.parquet"
 
+    caminho_relativo = (
+        Path("datasets")
+        / "processed"
+        / str(dataset.id)
+        / nome_arquivo
+    ).as_posix()
+
+    dataset.resultado_processado.name = caminho_relativo
+
     caminho = (
         Path(dataset.arquivo.storage.location)
-        / "datasets"
-        / "processed"
-        / nome_arquivo
+        / caminho_relativo
     )
 
     save_dataframe_as_parquet(
         dataframe=dataframe,
         path=caminho,
     )
-
-    caminho_relativo = (
-        Path("datasets")
-        / "processed"
-        / nome_arquivo
-    ).as_posix()
-
-    dataset.resultado_processado.name = caminho_relativo
 
     dataset.save(
         update_fields=[
@@ -428,7 +427,15 @@ def delete_dataset(dataset: Dataset) -> None:
     if dataset.arquivo:
         dataset.arquivo.delete(save=False)
 
-    if dataset.resultado_processado:
+    resultado_compartilhado = (
+        dataset.resultado_processado
+        and Dataset.objects
+        .exclude(id=dataset.id)
+        .filter(resultado_processado=dataset.resultado_processado.name)
+        .exists()
+    )
+
+    if dataset.resultado_processado and not resultado_compartilhado:
         dataset.resultado_processado.delete(save=False)
 
     dataset.delete()

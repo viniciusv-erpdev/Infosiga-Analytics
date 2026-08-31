@@ -477,13 +477,10 @@ Porém, ainda existem melhorias planejadas.
 
 ### Estado atual
 
-O Review ainda possui lógica antiga em alguns pontos, especialmente a entrada
-manual do autor da correção.
+O Review ainda possui lógica antiga em alguns pontos.
 
 ### Próximas melhorias
 
-- utilizar diretamente `request.user`;
-- remover entrada manual de usuário/autor;
 - melhorar pesquisa por logradouro;
 - permitir pesquisa por sugestão fuzzy;
 - permitir pesquisa por correção manual/canônica;
