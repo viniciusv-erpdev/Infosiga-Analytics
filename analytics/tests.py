@@ -7,10 +7,8 @@ from uuid import uuid4
 
 import pandas as pd
 from django.contrib.auth import get_user_model
-from django.contrib.messages.storage.fallback import FallbackStorage
-from django.contrib.sessions.backends.db import SessionStore
 from django.core.files.uploadedfile import SimpleUploadedFile, TemporaryUploadedFile
-from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
 from analytics.models import (
@@ -23,7 +21,6 @@ from analytics.services.dataset_service import DatasetService
 from analytics.services.file_loader import (
     build_preview_data,
     load_dataframe,
-    process_upload,
 )
 from analytics.services.preprocessing.address_cluster import cluster_addresses
 from analytics.services.preprocessing.address_dictionary import build_address_dictionary
@@ -274,6 +271,15 @@ class UploadConsistencyTests(TestCase):
         dataset = Dataset.objects.get(usuario=self.user)
         self.assertTrue(Path(dataset.arquivo.path).exists())
         self.assertTrue(Path(dataset.resultado_processado.path).exists())
+        mock_load_dataframe.assert_called_once()
+        self.assertNotIn("preview_data", self.client.session)
+
+    def test_review_without_legacy_preview_renders_empty_state(self):
+        response = self.client.get(reverse("review_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["records"], [])
+        self.assertContains(response, "Nenhum registro disponível")
 
     @patch(
         "analytics.services.file_loader.run_preprocessing",
@@ -677,44 +683,6 @@ class DatasetFileFlowTests(TestCase):
 
 
 class ProcessUploadTests(SimpleTestCase):
-    def _build_request(self):
-        file_data = BytesIO(b"tipo_registro;municipio;tipo_via;logradouro\nSINISTRO FATAL;RIBEIRAO PRETO;VIAS URBANAS;Av. Independencia\n")
-        uploaded_file = SimpleUploadedFile("sample.csv", file_data.getvalue(), content_type="text/csv")
-
-        request = RequestFactory().post(
-            "/upload/",
-            data={
-                "tipo_via": "urbana",
-                "tipo_sinistro": "fatal",
-                "arquivo": uploaded_file,
-            },
-            format="multipart",
-        )
-        request.session = SessionStore()
-        setattr(request, "_messages", FallbackStorage(request))
-        return request
-
-    @patch("analytics.services.file_loader.load_dataframe")
-    def test_process_upload_loads_dataframe_once_and_builds_preview(self, mock_load_dataframe):
-        dataframe = pd.DataFrame(
-            {
-                "tipo_registro": ["SINISTRO FATAL", "SINISTRO FATAL"],
-                "municipio": ["RIBEIRAO PRETO", "RIBEIRAO PRETO"],
-                "tipo_via": ["VIAS URBANAS", "VIAS URBANAS"],
-                "logradouro": ["Av. Independencia", "Rua Teste"],
-            }
-        )
-        mock_load_dataframe.return_value = dataframe
-
-        request = self._build_request()
-        form, response = process_upload(request)
-
-        self.assertTrue(form.is_valid())
-        self.assertEqual(mock_load_dataframe.call_count, 1)
-        self.assertEqual(request.session["preview_data"]["columns"], ["logradouro", "logradouro_normalizado"])
-        self.assertEqual(request.session["preview_data"]["rows"][0][0], "Av. Independencia")
-        self.assertEqual(response.status_code, 302)
-
     def test_cluster_addresses_groups_similar_addresses(self):
         clusters = cluster_addresses(["avenida independencia", "av independencia", "rua teste", "avenida independencia"])
 
