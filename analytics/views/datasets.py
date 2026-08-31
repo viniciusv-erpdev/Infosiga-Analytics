@@ -43,10 +43,6 @@ def dataset_detail(request, dataset_id):
 
     search_query = request.GET.get("q", "").strip()
     
-    page_obj = None
-    audits_by_record = {}
-    records_json = []
-
     dataset_columns = [
         "id_registro",
         "logradouro",
@@ -57,10 +53,6 @@ def dataset_detail(request, dataset_id):
         "correcao_manual_aplicada",
     ]
 
-    # Colunas que devem estar disponíveis internamente mas não serem exibidas na tabela
-    internal_only_columns = ["logradouro_limpo"]
-
-    load_error = False
     page_obj = None
     audits_by_record = {}
     records_json = []
@@ -390,7 +382,7 @@ def dataset_update_record(request, dataset_id):
             status=400,
         )
 
-    except Exception as exc:
+    except Exception:
         return JsonResponse(
             {
                 "success": False,

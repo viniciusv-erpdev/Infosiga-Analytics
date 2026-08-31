@@ -1,5 +1,3 @@
-import pandas as pd
-
 from analytics.persistence.corrections import (
     get_approved_corrections_by_limpos,
 )

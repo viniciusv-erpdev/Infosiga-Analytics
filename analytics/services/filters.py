@@ -1,6 +1,3 @@
-import pandas as pd
-
-
 def apply_filters(df, tipo_via=None, tipo_sinistro=None):
     """Aplica filtros iniciais e opcionais ao DataFrame."""
     if df is None:

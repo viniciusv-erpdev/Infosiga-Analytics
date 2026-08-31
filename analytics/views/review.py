@@ -6,7 +6,6 @@ from analytics.persistence.corrections import get_correction_by_limpo
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-import json
 
 from analytics.services.review_service import ReviewService
 

@@ -1,18 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
 
-    console.log("PASSO 1");
-
     const rawRecordsElement = document.getElementById('review-records-data');
-    
-    console.log("PASSO 2");
 
     const records = rawRecordsElement ? JSON.parse(rawRecordsElement.textContent) : [];
 
-    console.log("PASSO 3");    
-    
     const table = document.getElementById('reviewTable');
-
-    console.log("PASSO 4");
 
     function getRecord(index) {
         index = parseInt(index, 10);
@@ -54,8 +46,6 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.show();
     }
 
-    console.log("PASSO 5");
-
     if (table) {
         table.addEventListener('click', function (ev) {
             const btn = ev.target.closest('.btn-review');
@@ -71,16 +61,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return v ? v.pop() : '';
     }
 
-    console.log("PASSO 6");
-
     // Save handler
     const saveBtn = document.getElementById('rv-save-btn');
-    console.log(saveBtn);
     if (saveBtn) {
-        console.log("PASSO 7");
         saveBtn.addEventListener('click', function () {
-            console.log("PASSO 8");
-            console.log('Salvar Clicado')
             const modalEl = document.getElementById('reviewModal');
             const idx = parseInt(modalEl.getAttribute('data-current-index'), 10);
             const rec = getRecord(idx);

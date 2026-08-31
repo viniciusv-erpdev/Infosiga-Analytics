@@ -21,7 +21,6 @@ urlpatterns = [
     path("review/save/", review_submit, name="review_save"),
     path("datasets/", dataset_list, name="dataset_list"),
     path("datasets/<int:dataset_id>/", dataset_detail, name="dataset_detail"),
-    path("datasets/<int:dataset_id>/sugestoes/",dataset_search_suggestions,name="dataset_search_suggestions",),
     path("datasets/<int:dataset_id>/download/", dataset_download, name="dataset_download"),
     path("datasets/<int:dataset_id>/excluir/",dataset_delete,name="dataset_delete",),
     path("datasets/<int:dataset_id>/editar/", dataset_update_record,name="dataset_update_record",),
