@@ -1,7 +1,11 @@
+import logging
+
 from django.db import transaction
 
 from analytics.persistence import datasets as dataset_persistence
 from analytics.services.address_correction_service import (AddressCorrectionService,)
+
+logger = logging.getLogger(__name__)
 
 class DatasetService:
 
@@ -118,10 +122,24 @@ class DatasetService:
                     note=note,
                 )
         except Exception:
-            dataset_persistence.save_processed_dataframe(
-                dataset=dataset,
-                dataframe=original_dataframe,
+            logger.exception(
+                "Falha ao atualizar registro; restaurando Parquet. dataset_id=%s id_registro=%s usuario_id=%s",
+                dataset.id,
+                id_registro,
+                getattr(usuario, "id", None),
             )
+            try:
+                dataset_persistence.save_processed_dataframe(
+                    dataset=dataset,
+                    dataframe=original_dataframe,
+                )
+            except Exception:
+                logger.exception(
+                    "Falha ao restaurar Parquet após erro de atualização. dataset_id=%s id_registro=%s",
+                    dataset.id,
+                    id_registro,
+                )
+                raise
             raise
 
     @staticmethod

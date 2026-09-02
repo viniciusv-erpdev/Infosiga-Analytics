@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 
 import pandas as pd
@@ -12,6 +13,7 @@ from analytics.services.preprocessing.pipeline import run_preprocessing
 from analytics.services.dataset_service import DatasetService
 
 ALLOWED_EXTENSIONS = {".csv", ".xlsx"}
+logger = logging.getLogger(__name__)
 
 
 def get_file_info(arquivo):
@@ -62,7 +64,11 @@ def load_dataframe(arquivo):
             finally:
                 text_stream.detach()
         except Exception:
-            pass
+            logger.debug(
+                "Falha ao ler CSV com o encoding %s.",
+                encoding,
+                exc_info=True,
+            )
 
     raise ValueError("Não foi possível abrir o arquivo CSV.")
 
@@ -220,7 +226,20 @@ def process_upload(request):
             dataframe=dataframe_processado,
         )
     except Exception:
-        DatasetService.delete(dataset)
+        logger.exception(
+            "Falha no processamento do upload. dataset_id=%s usuario_id=%s arquivo=%s",
+            dataset.id,
+            request.user.id,
+            dataset.nome_original,
+        )
+        try:
+            DatasetService.delete(dataset)
+        except Exception:
+            logger.exception(
+                "Falha no cleanup de upload incompleto. dataset_id=%s usuario_id=%s",
+                dataset.id,
+                request.user.id,
+            )
         messages.error(
             request,
             "Não foi possível processar o arquivo enviado.",

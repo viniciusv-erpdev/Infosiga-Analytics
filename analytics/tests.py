@@ -285,6 +285,35 @@ class UploadConsistencyTests(TestCase):
         self.assertContains(response, "Nenhum registro disponível")
 
     @patch(
+        "analytics.views.review.ReviewService.submit_correction",
+        side_effect=RuntimeError("detalhe técnico sigiloso"),
+    )
+    def test_review_failure_is_logged_without_exposing_details(self, mock_submit):
+        with self.assertLogs("analytics.views.review", level="ERROR") as logs:
+            response = self.client.post(
+                reverse("review_save"),
+                data={
+                    "logradouro_original": "Rua Teste",
+                    "logradouro_limpo": "rua teste",
+                    "logradouro_canonico": "Rua Teste",
+                    "status": "APROVADO",
+                },
+                content_type="application/json",
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            response.json()["error"],
+            "Não foi possível salvar a correção.",
+        )
+        self.assertNotContains(
+            response,
+            "detalhe técnico sigiloso",
+            status_code=500,
+        )
+        self.assertIn("detalhe técnico sigiloso", "\n".join(logs.output))
+
+    @patch(
         "analytics.services.file_loader.run_preprocessing",
         side_effect=RuntimeError("falha simulada"),
     )
@@ -296,11 +325,16 @@ class UploadConsistencyTests(TestCase):
     ):
         mock_load_dataframe.return_value = self.dataframe
 
-        response = self._upload()
+        with self.assertLogs(
+            "analytics.services.file_loader",
+            level="ERROR",
+        ) as logs:
+            response = self._upload()
 
         self.assertRedirects(response, reverse("home"))
         self.assertFalse(Dataset.objects.filter(usuario=self.user).exists())
         self.assertEqual(self._stored_files(), set())
+        self.assertIn("dataset_id=", "\n".join(logs.output))
 
     @patch("analytics.services.file_loader.load_dataframe")
     def test_parquet_write_failure_removes_created_orphan(self, mock_load_dataframe):
@@ -464,11 +498,12 @@ class DatasetRecordEditingTests(TestCase):
         )
 
     def test_audit_failure_restores_original_parquet(self):
-        with patch(
-            "analytics.persistence.datasets.DatasetRecordAudit.objects.create",
-            side_effect=RuntimeError("falha simulada na auditoria"),
-        ):
-            response = self._edit({"numero_logradouro": 30})
+        with self.assertLogs("analytics", level="ERROR") as logs:
+            with patch(
+                "analytics.persistence.datasets.DatasetRecordAudit.objects.create",
+                side_effect=RuntimeError("falha simulada na auditoria"),
+            ):
+                response = self._edit({"numero_logradouro": 30})
 
         self.assertEqual(response.status_code, 500)
         dataframe = DatasetService.load_processed_dataframe(self.dataset)
@@ -476,6 +511,7 @@ class DatasetRecordEditingTests(TestCase):
         self.assertFalse(
             DatasetRecordAudit.objects.filter(dataset=self.dataset).exists()
         )
+        self.assertIn("id_registro=", "\n".join(logs.output))
 
     def test_correction_audit_failure_restores_parquet_and_database(self):
         with patch(

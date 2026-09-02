@@ -1,3 +1,6 @@
+import json
+import logging
+import tempfile
 from pathlib import Path
 
 from django.contrib import messages
@@ -8,15 +11,13 @@ from django.shortcuts import redirect, render
 
 from analytics.models import DatasetRecordAudit
 
-from analytics.services.dataset_service import DatasetService
-import tempfile
-
-import json
-
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
+from analytics.services.dataset_service import DatasetService
 from analytics.services.dataset_search_service import DatasetSearchService
+
+logger = logging.getLogger(__name__)
 
 @login_required
 def dataset_list(request):
@@ -205,6 +206,11 @@ def dataset_detail(request, dataset_id):
                 })
 
         except Exception:
+            logger.exception(
+                "Falha ao carregar detalhe do dataset. dataset_id=%s usuario_id=%s",
+                dataset.id,
+                request.user.id,
+            )
             load_error = True
 
             messages.error(
@@ -244,6 +250,8 @@ def dataset_download(request, dataset_id):
             dataset_id=dataset.id,
         )
 
+    temporary_file = None
+
     try:
         dataframe = DatasetService.prepare_dataframe_for_export(
             dataset
@@ -279,11 +287,35 @@ def dataset_download(request, dataset_id):
         return response
 
     except FileNotFoundError:
+        if temporary_file is not None:
+            temporary_file.close()
+        logger.warning(
+            "Arquivo processado não encontrado para download. dataset_id=%s usuario_id=%s",
+            dataset.id,
+            request.user.id,
+            exc_info=True,
+        )
         messages.error(
             request,
             "Arquivo de resultado processado não encontrado."
         )
 
+        return redirect(
+            "dataset_detail",
+            dataset_id=dataset.id,
+        )
+    except Exception:
+        if temporary_file is not None:
+            temporary_file.close()
+        logger.exception(
+            "Falha ao gerar download XLSX. dataset_id=%s usuario_id=%s",
+            dataset.id,
+            request.user.id,
+        )
+        messages.error(
+            request,
+            "Não foi possível gerar o arquivo para download.",
+        )
         return redirect(
             "dataset_detail",
             dataset_id=dataset.id,
@@ -383,6 +415,12 @@ def dataset_update_record(request, dataset_id):
         )
 
     except Exception:
+        logger.exception(
+            "Falha ao atualizar registro do dataset. dataset_id=%s id_registro=%s usuario_id=%s",
+            dataset.id,
+            id_registro,
+            request.user.id,
+        )
         return JsonResponse(
             {
                 "success": False,
@@ -429,6 +467,12 @@ def dataset_search_suggestions(request, dataset_id):
         })
 
     except Exception:
+        logger.exception(
+            "Falha ao gerar sugestões do dataset. dataset_id=%s usuario_id=%s query_length=%s",
+            dataset.id,
+            request.user.id,
+            len(query),
+        )
         return JsonResponse(
             {
                 "suggestions": [],

@@ -1,4 +1,5 @@
 import json
+import logging
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
@@ -8,6 +9,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from analytics.services.review_service import ReviewService
+
+logger = logging.getLogger(__name__)
 
 def get_preview_source(session):
     """Ponto de abstração para obter os dados da fonte da Central de Revisão.
@@ -43,7 +46,7 @@ def _normalize_row_maps(preview):
             for idx, col in enumerate(columns):
                 try:
                     rec[col] = rows[i][idx]
-                except Exception:
+                except (IndexError, KeyError, TypeError):
                     rec[col] = ""
 
         # regularization
@@ -51,7 +54,7 @@ def _normalize_row_maps(preview):
             for idx, col in enumerate(reg_cols):
                 try:
                     rec[col] = reg_rows[i][idx]
-                except Exception:
+                except (IndexError, KeyError, TypeError):
                     rec[col] = ""
 
         # audit
@@ -59,7 +62,7 @@ def _normalize_row_maps(preview):
             for idx, col in enumerate(audit_cols):
                 try:
                     rec[col] = audit_rows[i][idx]
-                except Exception:
+                except (IndexError, KeyError, TypeError):
                     rec[col] = ""
 
         # normaliza nomes esperados
@@ -128,7 +131,7 @@ def review_list(request):
 def review_submit(request):
     try:
         payload = json.loads(request.body.decode("utf-8"))
-    except Exception:
+    except (json.JSONDecodeError, UnicodeDecodeError):
         return JsonResponse({"success": False, "error": "JSON inválido"}, status=400)
 
     logradouro_original = payload.get("logradouro_original", "")
@@ -167,5 +170,16 @@ def review_submit(request):
 
         return JsonResponse({"success": True, "data": data})
 
-    except Exception as exc:
-        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+    except Exception:
+        logger.exception(
+            "Falha ao salvar revisão de endereço. usuario_id=%s logradouro_limpo=%s",
+            request.user.id,
+            logradouro_limpo,
+        )
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Não foi possível salvar a correção.",
+            },
+            status=500,
+        )
