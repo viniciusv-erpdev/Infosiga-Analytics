@@ -22,7 +22,10 @@ from analytics.services.file_loader import (
     build_preview_data,
     load_dataframe,
 )
-from analytics.services.preprocessing.address_cluster import cluster_addresses
+from analytics.services.preprocessing.address_cluster import (
+    SIMILARITY_THRESHOLD,
+    cluster_addresses,
+)
 from analytics.services.preprocessing.address_dictionary import build_address_dictionary
 from analytics.services.preprocessing.address_matcher import regularize_addresses
 from analytics.services.preprocessing.address_semantic_cleaner import clean_semantic_address
@@ -684,18 +687,72 @@ class DatasetFileFlowTests(TestCase):
 
 class ProcessUploadTests(SimpleTestCase):
     def test_cluster_addresses_groups_similar_addresses(self):
-        clusters = cluster_addresses(["avenida independencia", "av independencia", "rua teste", "avenida independencia"])
+        clusters = cluster_addresses(["avenida independencia", "avenida independensia", "rua teste", "avenida independencia"])
 
         self.assertIn("avenida independencia", clusters)
         self.assertEqual(clusters["avenida independencia"]["frequencia"], 3)
-        self.assertIn("av independencia", clusters["avenida independencia"]["membros"])
+        self.assertIn("avenida independensia", clusters["avenida independencia"]["membros"])
 
     def test_build_address_dictionary_maps_variations_to_canonical(self):
-        clusters = cluster_addresses(["avenida independencia", "av independencia"])
+        clusters = cluster_addresses(["avenida independencia", "avenida independensia"])
         dictionary = build_address_dictionary(clusters)
 
-        self.assertEqual(dictionary["av independencia"], "avenida independencia")
+        self.assertEqual(dictionary["avenida independensia"], "avenida independencia")
         self.assertEqual(dictionary["avenida independencia"], "avenida independencia")
+
+    def test_cluster_supports_all_recognized_street_types(self):
+        for tipo_via in ("rua", "avenida", "rodovia", "estrada"):
+            original = f"{tipo_via} das flores"
+            variation = f"{tipo_via} das florez"
+
+            with self.subTest(tipo_via=tipo_via):
+                clusters = cluster_addresses([original, variation])
+                self.assertEqual(clusters[original]["frequencia"], 2)
+                self.assertIn(variation, clusters[original]["membros"])
+
+    def test_cluster_groups_similar_address_without_street_type(self):
+        clusters = cluster_addresses([
+            "presidente vargas",
+            "presidente vargaz",
+        ])
+
+        self.assertEqual(clusters["presidente vargas"]["frequencia"], 2)
+        self.assertIn(
+            "presidente vargaz",
+            clusters["presidente vargas"]["membros"],
+        )
+
+    def test_cluster_groups_similar_unrecognized_street_type(self):
+        clusters = cluster_addresses([
+            "travessa brasil",
+            "travessa brazill",
+        ])
+
+        self.assertEqual(clusters["travessa brasil"]["frequencia"], 2)
+
+    def test_cluster_counts_identical_unknown_addresses(self):
+        clusters = cluster_addresses([
+            "presidente vargas",
+            "presidente vargas",
+        ])
+
+        self.assertEqual(clusters["presidente vargas"]["frequencia"], 2)
+
+    def test_cluster_keeps_clearly_different_unknown_addresses_separate(self):
+        clusters = cluster_addresses([
+            "local norte",
+            "local completamente diferente",
+        ])
+
+        self.assertEqual(len(clusters), 2)
+        self.assertEqual(clusters["local norte"]["frequencia"], 1)
+        self.assertEqual(
+            clusters["local completamente diferente"]["frequencia"],
+            1,
+        )
+
+    def test_cluster_similarity_threshold_remains_90(self):
+        self.assertEqual(SIMILARITY_THRESHOLD, 90)
 
     def test_regularize_addresses_adds_suggested_columns(self):
         dataframe = pd.DataFrame(

@@ -7,6 +7,15 @@ TIPOS_DE_VIA = {"rua", "avenida", "rodovia", "estrada"}
 SIMILARITY_THRESHOLD = 90
 
 
+def _grouping_key(logradouro):
+    primeiro_token = logradouro.split()[0] if logradouro.split() else ""
+
+    if primeiro_token in TIPOS_DE_VIA:
+        return ("TIPO_VIA", primeiro_token)
+
+    return ("PREFIXO_DESCONHECIDO", primeiro_token)
+
+
 def cluster_addresses(lista_logradouros):
     """Agrupa logradouros limpos por similaridade e frequência.
 
@@ -32,18 +41,15 @@ def cluster_addresses(lista_logradouros):
     clusters = {}
 
     for candidato, frequencia in logradouros_ordenados:
-        tipo_via = candidato.split()[0] if candidato.split() else ""
-        if tipo_via not in TIPOS_DE_VIA:
-            # Ignora entradas sem um tipo de via conhecido
-            continue
+        chave_agrupamento = _grouping_key(candidato)
 
         # Encontra o melhor representante existente com maior similaridade
         melhor_representante = None
         melhor_score = -1
         for representante, grupo in clusters.items():
-            # Mantém correspondência por tipo de via para evitar misturas
-            rep_tipo_via = representante.split()[0] if representante.split() else ""
-            if rep_tipo_via != tipo_via:
+            # Tipos conhecidos não se misturam. Para entradas sem tipo
+            # reconhecido, exige o mesmo primeiro token como proteção.
+            if _grouping_key(representante) != chave_agrupamento:
                 continue
 
             score = similarity_score(candidato, representante)
