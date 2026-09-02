@@ -10,22 +10,60 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_list(name, default=None):
+    value = os.environ.get(name)
+    if value is None:
+        return list(default or [])
+
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _env_path(name, default):
+    value = os.environ.get(name)
+    if not value:
+        return Path(default)
+
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        path = BASE_DIR / path
+
+    return path
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-q2l=vfm%t+b4xe=&-^yf0llj@@kd7j4boe8)qjt+z5*gf5g*4c'
+DEBUG = _env_bool("DJANGO_DEBUG", default=True)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY deve ser definida quando DJANGO_DEBUG estiver desativado."
+        )
+    SECRET_KEY = "django-insecure-local-development-only"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = _env_list(
+    "DJANGO_ALLOWED_HOSTS",
+    default=["localhost", "127.0.0.1", "[::1]"],
+)
 
 
 # Application definition
@@ -103,9 +141,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = os.environ.get("DJANGO_LANGUAGE_CODE", "en-us")
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = os.environ.get("DJANGO_TIME_ZONE", "UTC")
 
 USE_I18N = True
 
@@ -116,6 +154,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Mantém compatibilidade com os caminhos atuais em BASE_DIR/datasets.
+# Uma implantação pode apontar os uploads para outro diretório.
+MEDIA_ROOT = _env_path("DJANGO_MEDIA_ROOT", BASE_DIR)
+MEDIA_URL = os.environ.get("DJANGO_MEDIA_URL", "/media/")
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
